@@ -58,9 +58,16 @@ The gate is the enforcement layer; [`agent-memory`](https://github.com/zhjai/age
 
 ## Install
 
+The `skills` CLI installs **skills, not repo dependencies** — install the base first:
+
 ```bash
-npx skills add zhjai/agent-completion-gate -g -a claude-code   # pulls in agent-memory
+# 1. base (the gate's check spec reads agent-memory's read-only control/):
+npx skills add zhjai/agent-memory -g -a claude-code
+# 2. then the gate:
+npx skills add zhjai/agent-completion-gate -g -a claude-code
 ```
+
+> Dependency boundary: this repo **bundles** its own `gate/` + `surface_inventory.yaml`; **project-specific completion rules and approved lessons live in `agent-memory`'s read-only `control/`**, which the gate reads as its spec. Pin a compatible `agent-memory` version.
 
 ## Status
 
