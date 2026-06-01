@@ -1,0 +1,14 @@
+objective: "example A0 run"
+checks:
+  - id: case_examples_present
+    surface: case_examples
+    type: config_not_disabled
+    config_path: "config.json"
+    key: "max_case_examples"
+  - id: val_curve_non_degenerate
+    surface: metrics_curves
+    type: min_series_points
+    artifact: "metrics.json"
+    series: "val/normalized/mae"
+    min_points: 2
+review_items: []

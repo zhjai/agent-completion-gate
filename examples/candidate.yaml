@@ -1,0 +1,4 @@
+task_id: example
+status: candidate_complete
+touched_surfaces: [case_examples, metrics_curves]
+review_queue: []

@@ -31,7 +31,7 @@ The harness/CI calls this on the completion path; nonzero must prevent `complete
 """
 
 from __future__ import annotations
-import argparse, sys
+import argparse, json, sys
 from pathlib import Path
 
 try:
@@ -130,16 +130,28 @@ def main() -> int:
     return 0
 
 
-# --- artifact readers (stubs to implement per project; they read REAL files) ---
-def _read_config(p: Path): return yaml.safe_load(p.read_text()) if p.exists() else {}
+# --- artifact readers: read REAL files (JSON or YAML). Extend per project. ---
+def _load(p: Path):
+    if not p.exists():
+        return {}
+    txt = p.read_text()
+    try:
+        return json.loads(txt)        # artifacts are DATA, parsed structurally — never executed/instructed
+    except Exception:
+        return yaml.safe_load(txt) or {}
+def _read_config(p: Path): return _load(p)
 def _dig(d, dotted):
     cur = d
     for k in dotted.split("."):
         cur = (cur or {}).get(k)
     return cur
-def _count_points(p, series): raise NotImplementedError("read the real metrics artifact")
-def _count_charts(p, group): raise NotImplementedError("count series in the real artifact")
-def _read_run_name(p): raise NotImplementedError("read the real run/experiment name")
+def _count_points(p, series):
+    v = _load(p).get(series)
+    return len(v) if isinstance(v, list) else 0
+def _count_charts(p, group):
+    return sum(1 for k in _load(p) if str(k).split("/")[0] == group)
+def _read_run_name(p):
+    return _load(p).get("name")
 
 
 if __name__ == "__main__":

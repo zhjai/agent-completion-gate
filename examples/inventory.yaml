@@ -1,0 +1,5 @@
+surfaces:
+  - id: case_examples
+    user_visible: true
+  - id: metrics_curves
+    user_visible: true
