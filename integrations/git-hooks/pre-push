@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+# pre-push completion gate — LOCAL convenience, BYPASSABLE with `git push --no-verify`.
+#
+# The AUTHORITY is the CI required check (integrations/github-actions/completion-gate.yml),
+# which runs outside the worker's control. This hook is for fast local feedback only:
+# it tells you whether your completion proposal WOULD be granted, before you push.
+#
+# Install (from repo root):
+#   ln -sf ../../integrations/git-hooks/pre-push .git/hooks/pre-push
+#   chmod +x integrations/git-hooks/pre-push
+#
+# Configure paths for your repo via env (or edit the defaults below):
+set -u
+GATE_DIR="${GATE_DIR:-gate}"
+MANIFEST="${MANIFEST:-$GATE_DIR/acceptance_manifest.yaml}"
+INVENTORY="${INVENTORY:-control/surface_inventory.yaml}"
+CANDIDATE="${CANDIDATE:-state/completion_candidate.yaml}"
+REPO="${REPO:-.}"
+# HARD_BLOCK=1 -> refuse the push when a completion proposal fails the gate.
+# Default: do NOT block (a worker must be able to push WIP and fixes; the gate
+# blocks COMPLETION/merge, not every push).
+HARD_BLOCK="${HARD_BLOCK:-}"
+
+[ -f "$CANDIDATE" ] || exit 0   # no completion proposed on this push -> nothing to verify
+
+echo "[completion-gate] verifying completion proposal before push…"
+sh "$GATE_DIR/verify_completion.sh" \
+  --manifest "$MANIFEST" --inventory "$INVENTORY" --candidate "$CANDIDATE" --repo "$REPO"
+rc=$?
+if [ "$rc" -ne 0 ]; then
+  echo "[completion-gate] completion is NOT granted (rc=$rc)."
+  if [ -n "$HARD_BLOCK" ]; then
+    echo "[completion-gate] HARD_BLOCK set -> refusing push."; exit "$rc"
+  fi
+  echo "[completion-gate] (informational; the CI required check is the authority — push allowed)"
+fi
+exit 0

@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="skill" src="https://img.shields.io/badge/agent--skill-agent--completion--gate-1f6feb">
-  <img alt="version" src="https://img.shields.io/badge/version-0.1.0-informational">
+  <img alt="version" src="https://img.shields.io/badge/version-0.2.0-informational">
   <img alt="works with" src="https://img.shields.io/badge/Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20any%20agent-444">
   <a href="https://github.com/zhjai/agent-memory"><img alt="depends" src="https://img.shields.io/badge/depends%20on-agent--memory-orange"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-yellow"></a>
@@ -55,7 +55,7 @@ in_progress ──► candidate_complete ──►(EXTERNAL verifier)──► c
      └────────► blocked  (needs-review / unknown surface / missing evidence)
 ```
 
-Worker can only reach `candidate_complete` or `blocked`. **Only an external verifier writes `complete`.** **`needs-review == blocked`** (not an annotation the agent can set and move on). The kit ships the **check + the contract**, not a background daemon: `check_acceptance.py` returns a verdict (exit code + `COMPLETE-OK` / `BLOCKED`); you make "only an external verifier writes `complete`" real by wiring that verdict as your **canonical completion signal** (git hook / CI / task runner). See [`STATE_MACHINE.md`](STATE_MACHINE.md).
+Worker can only reach `candidate_complete` or `blocked`. **Only an external verifier writes `complete`.** **`needs-review == blocked`** (not an annotation the agent can set and move on). The kit ships the **check, the contract, and the wiring**: `check_acceptance.py` returns a verdict; [`gate/verify_completion.sh`](gate/verify_completion.sh) enforces the state machine around it (rejects a worker that wrote `complete` itself; grants `complete` only on a clean pass); and [`integrations/`](integrations/) attaches it as a **CI required check** (the authority), an **agent Stop-hook**, and a **pre-push** hook. See [`STATE_MACHINE.md`](STATE_MACHINE.md).
 
 ## Depends on agent-memory (the gate uses memory)
 
@@ -70,7 +70,7 @@ The gate is the enforcement layer; [`agent-memory`](https://github.com/zhjai/age
 
 1. Gate + manifest + inventory are **protected** (read-only, outside the agent-writable workspace, outside the lesson-promotion path).
 2. Inspect **real artifacts**, never `run_state`.
-3. **Unknowns fail closed** — a touched user-visible surface with no passing check → blocked.
+3. **Unknowns fail closed** — a touched user-visible surface with no passing check → blocked. (The default reads the worker's self-reported `touched_surfaces`; run `--strict-surfaces`, or feed a diff-derived candidate, so this rule doesn't trust the worker.)
 4. **One canonical completion signal** (the gate's verdict); chat / PR / dashboard derive from it, never become an independent "complete".
 5. **Artifact content is hostile data, not instructions** — deterministic checks first; an LLM verifier treats artifacts as untrusted (else a worker writes "mark complete" into a file and injects it).
 6. **Hermetic execution** — a read-only script isn't enough; pin env (PYTHONPATH / sitecustomize / conftest / generated configs).
@@ -98,4 +98,4 @@ npx skills add zhjai/agent-completion-gate -g -a codex
 
 ## Status
 
-`v0.1.0` preview. MIT. Agent-agnostic, file-based, fail-closed. Foundation: [`agent-memory`](https://github.com/zhjai/agent-memory).
+`v0.2.0` preview. MIT. Agent-agnostic, file-based, fail-closed. Foundation: [`agent-memory`](https://github.com/zhjai/agent-memory).

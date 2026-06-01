@@ -1,0 +1,13 @@
+{
+  "//": "Example Claude Code Stop hook. Merge into .claude/settings.json (project) and adapt the path. A Stop hook exiting 2 blocks the stop and feeds stderr back to the model, so while the gate blocks and this hook is installed, the agent is prevented from stopping at 'done' and told why. It is feedback, not authority: a worker that owns project settings/env can remove it — the human must own settings. Confirm the hook schema for your Claude Code version.",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "sh integrations/claude-code/stop_gate.sh" }
+        ]
+      }
+    ]
+  }
+}

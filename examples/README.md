@@ -48,3 +48,13 @@ exit=0
 - A goal-driven worker **cannot reach `complete`** while the real artifacts are broken; the state stays `blocked`.
 - The bundled `check_acceptance.py` ships working readers for these check types (`config_not_disabled`, `min_series_points`, `identity_in_name`, `max_chart_count`); extend per project for your own artifact formats.
 - Add a `review_items` entry and it blocks too — `needs-review == blocked`.
+
+## The external verifier (four-state contract)
+
+`run.sh` also exercises [`gate/verify_completion.sh`](../gate/verify_completion.sh) — the wrapper that enforces the state machine `check_acceptance.py` alone doesn't. Real output from the bundled fixtures:
+
+- **Worker overstep** ([`candidate_overstep.yaml`](candidate_overstep.yaml) says `status: complete`) → `BLOCKED` (exit 1) with reason `worker overstep`, *even though the artifacts are good* — a worker may not write its own verdict. (Enforced inside the protected `check_acceptance.py`, run hermetically with `python3 -E`.)
+- `candidate_complete` + broken artifacts → `BLOCKED` (exit 1).
+- `candidate_complete` + fixed artifacts → `COMPLETE-GRANTED` (exit 0); the verifier writes a verifier-owned verdict file.
+
+That exit code is the canonical completion signal — wire it via [`integrations/`](../integrations/) (CI required check = authority; agent Stop-hook + pre-push = feedback).

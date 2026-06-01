@@ -1,0 +1,7 @@
+# A worker that OVERSTEPS: it wrote `complete` itself instead of proposing
+# `candidate_complete`. The external verifier must reject this outright (fail closed),
+# even if the real artifacts happen to be fine — the worker may not write the verdict.
+task_id: example
+status: complete
+touched_surfaces: [case_examples, metrics_curves]
+review_queue: []

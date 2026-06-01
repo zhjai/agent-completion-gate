@@ -91,22 +91,48 @@ def main() -> int:
     ap.add_argument("--inventory", required=True, help="protected surface_inventory.yaml")
     ap.add_argument("--candidate", required=True, help="worker's completion_candidate.yaml")
     ap.add_argument("--repo", default=".", help="repo root to inspect real artifacts")
+    ap.add_argument("--strict-surfaces", action="store_true",
+                    help="require EVERY user-visible surface in the inventory to have a passing "
+                         "check; ignore the worker-reported touched_surfaces. Recommended in CI / "
+                         "for untrusted workers (the touched_surfaces list is a worker self-report).")
     a = ap.parse_args()
     repo = Path(a.repo)
 
     manifest = load_protected(Path(a.manifest))
     inventory = load_protected(Path(a.inventory))
     candidate = yaml.safe_load(Path(a.candidate).read_text()) if Path(a.candidate).exists() else {}
+    if not isinstance(candidate, dict):
+        print(f"BLOCKED: candidate is not a mapping ({type(candidate).__name__}); fail closed.", file=sys.stderr)
+        return 1
 
     blocked: list[str] = []
 
-    # (3) UNKNOWNS FAIL CLOSED: every touched user-visible surface needs a check
-    touched = set(candidate.get("touched_surfaces", []))
+    # (1b) STATE GUARD — a worker may reach at most `candidate_complete`. Enforced HERE,
+    # in the protected entrypoint, so there is no shell-side parser to shadow or spoof.
+    state, serr = candidate_state(candidate)
+    if serr:
+        blocked.append(f"invalid completion candidate: {serr} (fail closed)")
+    elif state == "complete":
+        blocked.append("worker overstep: candidate declares 'complete'; a worker may reach at most 'candidate_complete'")
+    elif state != "candidate_complete":
+        blocked.append(f"not a completion proposal: status='{state}' (expected 'candidate_complete')")
+
+    # (3) UNKNOWNS FAIL CLOSED: every user-visible surface needs a passing check.
     must_check = {s["id"] for s in inventory.get("surfaces", []) if s.get("user_visible")}
     covered = {c.get("surface") for c in manifest.get("checks", [])}
-    for s in touched:
-        if s in must_check and s not in covered:
-            blocked.append(f"uncovered user-visible surface touched, no check: {s}")
+    if a.strict_surfaces:
+        # Do NOT trust the worker's touched_surfaces: require coverage of ALL user-visible surfaces.
+        for s in sorted(must_check):
+            if s not in covered:
+                blocked.append(f"strict-surfaces: user-visible surface '{s}' has no check")
+    else:
+        # Default: use the worker-reported touched_surfaces. This is a SELF-REPORT, not trusted
+        # evidence — a worker can omit a surface it touched. Use --strict-surfaces, or feed a
+        # diff-derived candidate, whenever the worker is untrusted.
+        touched = set(candidate.get("touched_surfaces", []) or [])
+        for s in touched:
+            if s in must_check and s not in covered:
+                blocked.append(f"uncovered user-visible surface touched, no check: {s}")
 
     # (2) machine checks against REAL artifacts
     for check in manifest.get("checks", []):
@@ -128,6 +154,26 @@ def main() -> int:
 
     print("\nCOMPLETE-OK: all machine checks passed, no review items, no uncovered surfaces.")
     return 0
+
+
+def candidate_state(candidate: dict):
+    """Read the worker-proposed state STRICTLY. Returns (state, error).
+    Scalar string only; NO truthiness fallback (so `status: []` can't silently defer to
+    `state:`); conflicting `status`/`state` is an error. The worker's status is a CLAIM
+    to validate, never a verdict to trust."""
+    has_status = "status" in candidate
+    has_state = "state" in candidate
+    if has_status and has_state and candidate.get("status") != candidate.get("state"):
+        return None, "conflicting 'status' and 'state' fields"
+    if has_status:
+        raw = candidate.get("status")
+    elif has_state:
+        raw = candidate.get("state")
+    else:
+        return None, "no 'status'/'state' field"
+    if not isinstance(raw, str):
+        return None, f"status must be a string scalar, got {type(raw).__name__}"
+    return raw.strip(), None
 
 
 # --- artifact readers: read REAL files (JSON or YAML). Extend per project. ---

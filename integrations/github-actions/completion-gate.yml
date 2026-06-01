@@ -1,0 +1,68 @@
+# completion-gate.yml — the AUTHORITATIVE external verifier.
+#
+# Copy to .github/workflows/ in YOUR repo. REQUIRED SETUP (the workflow can't enforce
+# these on itself — do them or the gate is bypassable):
+#   1. Mark "verify-completion" a REQUIRED status check (branch protection on the base branch).
+#   2. CODEOWNERS-protect gate/, control/, and .github/workflows/completion-gate.yml so a
+#      worker can't weaken the gate in the same PR it must pass. (This workflow ALSO re-checks
+#      the gate out from the base branch as defence in depth — see the step below.)
+#   3. Keep the base branch protected; this job trusts gate/ + control/ FROM THE BASE REF.
+#
+# Model: `complete` == this required check is green. A worker can reach candidate_complete
+# (commit state/completion_candidate.yaml); only THIS check — on GitHub's runners, outside the
+# worker's control, un-`--no-verify`-able — grants completion by gating the merge. Its verdict
+# is the ONE canonical signal. NOTE: a hostile *base* branch or runner env can still defeat any
+# gate; this is "external + fail-closed under a trusted base", not "unbypassable".
+name: completion-gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-completion:
+    runs-on: ubuntu-latest
+    env:
+      MANIFEST: gate/acceptance_manifest.yaml
+      INVENTORY: control/surface_inventory.yaml
+      CANDIDATE: state/completion_candidate.yaml
+      # Fail-closed by default: a PR with NO completion_candidate.yaml FAILS this check.
+      # Set ALLOW_NO_CANDIDATE=1 if you do NOT gate every merge on a verified completion
+      # (then "no candidate" means "nothing is claimed as done" and the check passes).
+      ALLOW_NO_CANDIDATE: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pyyaml==6.0.2"   # pinned (hermetic)
+
+      - name: Use the PROTECTED gate from the base branch
+        if: github.event_name == 'pull_request'
+        run: |
+          set -eu
+          # A PR must not be judged by a gate the same PR can edit. Overwrite any PR-side
+          # changes to the gate + protected spec with the base-branch (trusted) version.
+          git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
+          git checkout "origin/$GITHUB_BASE_REF" -- gate control
+
+      - name: External completion verifier (fail-closed)
+        run: |
+          set -u
+          if [ ! -f "$CANDIDATE" ]; then
+            if [ -n "$ALLOW_NO_CANDIDATE" ]; then
+              echo "No $CANDIDATE and ALLOW_NO_CANDIDATE set -> nothing claimed as done. Passing."
+              exit 0
+            fi
+            echo "FAIL-CLOSED: no $CANDIDATE present — a merge must carry a verified completion proposal."
+            echo "(set ALLOW_NO_CANDIDATE=1 if this repo does not gate every merge on completion.)"
+            exit 1
+          fi
+          # --strict-surfaces: don't trust the worker's touched_surfaces; require EVERY
+          # user-visible surface in the inventory to have a passing check.
+          sh gate/verify_completion.sh \
+            --manifest "$MANIFEST" --inventory "$INVENTORY" \
+            --candidate "$CANDIDATE" --repo . --strict-surfaces

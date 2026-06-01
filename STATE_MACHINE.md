@@ -32,19 +32,15 @@ The one invariant the whole kit defends. Wire this into your harness; don't let 
 3. `candidate_complete → complete` happens **only** when `check_acceptance.py` exits 0 (run by the gate/CI/hook, reading real artifacts).
 4. Any uncovered user-visible touched surface, any failed machine check, or any review item ⇒ `blocked` (unknowns fail closed).
 
-## Hook wiring (so it isn't bypassable)
+## Hook wiring (shipped, not advisory)
 
-Attach the gate to **every** path that could mark a task done — e.g. a Codex/Claude completion/stop-hook, or a CI required check:
+The kit ships ready-to-use wiring in [`integrations/`](integrations/) that attaches the external verifier ([`gate/verify_completion.sh`](gate/verify_completion.sh)) to the paths that can mark work done:
 
-```bash
-# pseudo stop-hook
-python completion-control-kit/gate/check_acceptance.py \
-    --manifest  <protected>/acceptance_manifest.yaml \
-    --inventory <protected>/surface_inventory.yaml \
-    --candidate state/tasks/<task_id>/completion_candidate.yaml \
-    --repo . \
-  || { echo "gate failed -> task stays blocked"; exit 1; }
-```
+- **CI required check** ([`integrations/github-actions/completion-gate.yml`](integrations/github-actions/completion-gate.yml)) — the **authority**: runs outside the worker's control, gates the merge. `complete` == this check is green.
+- **Agent Stop / completion hook** ([`integrations/claude-code/`](integrations/claude-code/)) — blocks an agent from declaring done in its own loop (Claude Code Stop hook exits `2`, feeding the gate's reasons back to the model). Works as a Codex completion hook too.
+- **Local `pre-push`** ([`integrations/git-hooks/pre-push`](integrations/git-hooks/pre-push)) — fast local feedback (bypassable by design).
+
+The state-machine guard lives **inside the protected entrypoint** `check_acceptance.py` (not in shell, so there's no parser to shadow/spoof): it **rejects a worker that wrote `complete` itself** (overstep), requires `candidate_complete`, reads the candidate's status **strictly** (scalar only, no truthiness fallback, conflicts rejected), and runs the artifact checks; `--strict-surfaces` makes the "uncovered surface" rule ignore the worker's self-reported `touched_surfaces`. `verify_completion.sh` invokes it with `python3 -E` (so worker repo files / `PYTHON*` env can't shadow `import yaml`) and records the verifier-owned verdict only on a clean pass. Its exit code is the canonical signal. See [`integrations/README.md`](integrations/README.md) for the trust model (why CI is the authority, the hooks are convenience, and what "hermetic" does and doesn't cover).
 
 If completion can happen on a path that doesn't run this, the gate is bypassable — close that path.
 
