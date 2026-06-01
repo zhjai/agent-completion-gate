@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280" width="1200" height="280" role="img" aria-label="agent-completion-gate — fail-closed completion gate that stops agents marking work done that isn't">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#6e7681"/></marker>
+    <marker id="arG" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#3fb950"/></marker>
+    <marker id="arR" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#f85149"/></marker>
+  </defs>
+  <rect width="1200" height="280" fill="#0d1117"/>
+  <line x1="0" y1="0" x2="1200" y2="0" stroke="#21262d" stroke-width="1.5"/>
+  <line x1="0" y1="279" x2="1200" y2="279" stroke="#21262d" stroke-width="1.5"/>
+
+  <!-- Left: title -->
+  <text x="48" y="104" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="44" font-weight="800" fill="#f0f6fc" letter-spacing="-1">agent-completion-gate</text>
+  <text x="50" y="140" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="17" font-weight="600" fill="#58a6ff">Stop agents from marking work "done" that isn't.</text>
+  <text x="50" y="166" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="14" fill="#8b949e">A fail-closed gate reads the real artifacts — the worker can only</text>
+  <text x="50" y="186" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="14" fill="#8b949e">propose done; an external verifier grants it.</text>
+  <g font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="11.5">
+    <rect x="50" y="212" width="92" height="24" rx="12" fill="#161b22" stroke="#30363d"/><text x="96" y="228" text-anchor="middle" fill="#8b949e">fail-closed</text>
+    <rect x="150" y="212" width="104" height="24" rx="12" fill="#161b22" stroke="#30363d"/><text x="202" y="228" text-anchor="middle" fill="#8b949e">four-state</text>
+    <rect x="262" y="212" width="150" height="24" rx="12" fill="#161b22" stroke="#30363d"/><text x="337" y="228" text-anchor="middle" fill="#8b949e">reads real artifacts</text>
+  </g>
+
+  <line x1="470" y1="40" x2="470" y2="240" stroke="#21262d" stroke-width="1"/>
+
+  <!-- Right: flow candidate_complete -> gate -> complete / blocked -->
+  <rect x="512" y="120" width="150" height="44" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="587" y="140" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="11.5" fill="#e6edf3">worker proposes</text>
+  <text x="587" y="156" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#6e7681">candidate_complete</text>
+
+  <line x1="666" y1="142" x2="712" y2="142" stroke="#6e7681" stroke-width="2" marker-end="url(#ar)"/>
+
+  <!-- gate (shield) -->
+  <path d="M 790 100 L 846 114 L 846 154 Q 846 182 790 196 Q 734 182 734 154 L 734 114 Z" fill="#1a1233" stroke="#a371f7" stroke-width="1.8"/>
+  <text x="790" y="142" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="700" fill="#d2a8ff">GATE</text>
+  <text x="790" y="160" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="8.5" fill="#a371f7">real artifacts</text>
+
+  <path d="M 848 130 Q 900 130 940 106" fill="none" stroke="#3fb950" stroke-width="2" marker-end="url(#arG)"/>
+  <path d="M 848 166 Q 900 166 940 190" fill="none" stroke="#f85149" stroke-width="2" marker-end="url(#arR)"/>
+
+  <rect x="956" y="88" width="206" height="40" rx="8" fill="#0f2417" stroke="#238636" stroke-width="1.5"/>
+  <text x="974" y="113" font-family="-apple-system,sans-serif" font-size="15" font-weight="700" fill="#3fb950">✓</text>
+  <text x="992" y="113" font-family="ui-monospace,Consolas,monospace" font-size="12" fill="#56d364">complete (external)</text>
+
+  <rect x="956" y="168" width="206" height="40" rx="8" fill="#2d1214" stroke="#da3633" stroke-width="1.5"/>
+  <text x="974" y="193" font-family="-apple-system,sans-serif" font-size="15" font-weight="700" fill="#f85149">✗</text>
+  <text x="992" y="193" font-family="ui-monospace,Consolas,monospace" font-size="12" fill="#ff7b72">blocked / needs-review</text>
+
+  <text x="820" y="234" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="11" fill="#484f58">only an external verifier writes complete   ·   Claude Code · Codex · any agent</text>
+</svg>

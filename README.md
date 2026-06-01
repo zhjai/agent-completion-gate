@@ -1,6 +1,22 @@
 # agent-completion-gate
 
-> **Stop agents from marking work "done" that isn't.** A fail-closed completion gate + a four-state machine: a worker can only *propose* done — an external verifier grants it. Built on [`agent-memory`](https://github.com/zhjai/agent-memory).
+<p align="center">
+  <img src="assets/banner.svg" alt="agent-completion-gate — a fail-closed completion gate that stops agents marking work done that isn't" width="100%">
+</p>
+
+<p align="center">
+  <strong>English</strong> · <a href="README.zh.md">中文</a>
+</p>
+
+<p align="center">
+  <img alt="skill" src="https://img.shields.io/badge/agent--skill-agent--completion--gate-1f6feb">
+  <img alt="version" src="https://img.shields.io/badge/version-0.1.0-informational">
+  <img alt="works with" src="https://img.shields.io/badge/Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20any%20agent-444">
+  <a href="https://github.com/zhjai/agent-memory"><img alt="depends" src="https://img.shields.io/badge/depends%20on-agent--memory-orange"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-yellow"></a>
+</p>
+
+> **Stop agents from marking work "done" that isn't.** A fail-closed completion gate + a four-state machine: a worker can only *propose* done — an external verifier grants it. Built on [`agent-memory`](https://github.com/zhjai/agent-memory). Works with **any** Agent-Skills host — Claude Code, Codex, and others — not a single vendor.
 
 ## The failure it prevents (30 seconds)
 
@@ -10,7 +26,9 @@ A goal-driven agent finishes a long task and declares success — "plan executed
 # worker proposes done (it can only reach candidate_complete, never complete):
 state: candidate_complete
 
-$ check_acceptance --manifest <protected>/acceptance_manifest.yaml --repo .
+$ check_acceptance --manifest <protected>/acceptance_manifest.yaml \
+                   --inventory <protected>/surface_inventory.yaml \
+                   --candidate state/<task>/completion_candidate.yaml --repo .
   FAIL  case_examples_present:     max_case_examples=0 (must not be disabled)
   FAIL  val_curve_non_degenerate:  val/mae points=1 (min 2)
   BLOCK needs-review:              dashboard_readability
@@ -37,13 +55,14 @@ in_progress ──► candidate_complete ──►(EXTERNAL verifier)──► c
      └────────► blocked  (needs-review / unknown surface / missing evidence)
 ```
 
-Worker can only reach `candidate_complete` or `blocked`. **Only an external verifier writes `complete`.** **`needs-review == blocked`** (not an annotation the agent can set and move on). See [`STATE_MACHINE.md`](STATE_MACHINE.md).
+Worker can only reach `candidate_complete` or `blocked`. **Only an external verifier writes `complete`.** **`needs-review == blocked`** (not an annotation the agent can set and move on). The kit ships the **check + the contract**, not a background daemon: `check_acceptance.py` returns a verdict (exit code + `COMPLETE-OK` / `BLOCKED`); you make "only an external verifier writes `complete`" real by wiring that verdict as your **canonical completion signal** (git hook / CI / task runner). See [`STATE_MACHINE.md`](STATE_MACHINE.md).
 
 ## Depends on agent-memory (the gate uses memory)
 
 The gate is the enforcement layer; [`agent-memory`](https://github.com/zhjai/agent-memory) is its foundation:
 
-- The gate reads agent-memory's **read-only `control/`** (rules + `surface_inventory`) as its spec for *what must be checked* — human/CI-maintained, **outside any lesson-promotion path**, so a worker can't weaken the gate via a promoted "lesson".
+- The gate's **protected completion spec** — `acceptance_manifest.yaml` + `control/surface_inventory.yaml` — is **bundled in this repo**, kept read-only, **outside the agent-writable workspace and outside any lesson-promotion path**, so a worker can't weaken the gate via a promoted "lesson".
+- It reads `agent-memory`'s **read-only `control/`** for the project's **rules and approved lessons** (the policy layer the gate must honor) — human/CI-maintained, never worker-writable.
 - The gate **never** trusts agent-memory's worker-writable `state/` (run_state) as truth — it inspects real artifacts.
 - Install `agent-memory` first; this kit layers on top.
 
@@ -65,6 +84,14 @@ The `skills` CLI installs **skills, not repo dependencies** — install the base
 npx skills add zhjai/agent-memory -g -a claude-code
 # 2. then the gate:
 npx skills add zhjai/agent-completion-gate -g -a claude-code
+```
+
+Not a Claude Code user? Swap the host — the skill is agent-agnostic:
+
+```bash
+npx skills add zhjai/agent-memory -g -a codex   # Codex
+npx skills add zhjai/agent-completion-gate -g -a codex
+# … or any other Agent-Skills host (the gate is a plain Python script + file conventions)
 ```
 
 > Dependency boundary: this repo **bundles** its own `gate/` + `surface_inventory.yaml`; **project-specific completion rules and approved lessons live in `agent-memory`'s read-only `control/`**, which the gate reads as its spec. Pin a compatible `agent-memory` version.
