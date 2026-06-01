@@ -1,0 +1,38 @@
+# acceptance_manifest.yaml — PROTECTED (read-only to the worker).
+# Per-task machine checks. The gate runs these against REAL artifacts (never run_state).
+# Each check binds to a surface from surface_inventory.yaml.
+# Example below mirrors the SwanLab incident that motivated this kit.
+
+objective: "example: A0 formal small matrix run"
+
+checks:
+  - id: run_identity_visible
+    surface: experiment_tracking
+    type: identity_in_name
+    artifact: "artifacts/runs/<run_id>/run_meta.json"
+    must_contain_any: ["stage1234", "stage234", "stage34"]   # branch identity must show
+
+  - id: val_curve_non_degenerate
+    surface: metrics_curves
+    type: min_series_points
+    artifact: "artifacts/runs/<run_id>/eval/metrics.json"
+    series: "val/normalized/mae"
+    min_points: 2                                            # not a single endpoint
+
+  - id: case_examples_present
+    surface: case_examples
+    type: config_not_disabled
+    config_path: "configs/<config>.jsonc"
+    key: "max_case_examples"                                 # must NOT be 0/None
+
+  - id: chart_budget_val
+    surface: experiment_tracking
+    type: max_chart_count
+    artifact: "artifacts/runs/<run_id>/eval/metrics.json"
+    group: "val"
+    max: 20                                                  # no chart explosion
+
+# Items that require human/CI judgment. PRESENCE OF ANY => BLOCKED (needs-review == blocked).
+review_items:
+  - id: dashboard_readability
+    description: "a human can distinguish branches and find the key curves at a glance"
