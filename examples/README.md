@@ -58,3 +58,16 @@ exit=0
 - `candidate_complete` + fixed artifacts → `COMPLETE-GRANTED` (exit 0); the verifier writes a verifier-owned verdict file.
 
 That exit code is the canonical completion signal — wire it via [`integrations/`](../integrations/) (CI required check = authority; agent Stop-hook + pre-push = feedback).
+
+## Diff-derived touched surfaces (don't trust the self-report)
+
+[`diff_demo.sh`](diff_demo.sh) shows the **`touched_surfaces` self-report gap** and how to close it. The worker's candidate omits `exports`, but `exports/data.csv` changed and `exports` has no check:
+
+- **Default** (trusts `touched_surfaces`) → `COMPLETE-OK` — `exports` slips through.
+- **Diff-derived** (`derive_touched.py` maps the changed files to surfaces via the inventory's `paths` globs → `--touched`) → `BLOCKED`, because `exports` is a touched, user-visible, uncovered surface.
+
+```bash
+sh examples/diff_demo.sh
+```
+
+In CI, pass `--diff-base <ref>` to `verify_completion.sh` (it runs `git diff` for you), or `--strict-surfaces` to require every user-visible surface covered regardless of what changed.

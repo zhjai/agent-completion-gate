@@ -24,11 +24,13 @@
 set -u
 
 usage() {
-  echo "usage: verify_completion.sh --manifest M --inventory I --candidate C [--repo DIR] [--strict-surfaces] [--verdict-out FILE]" >&2
+  echo "usage: verify_completion.sh --manifest M --inventory I --candidate C [--repo DIR]" >&2
+  echo "         [--strict-surfaces] [--touched IDS | --diff-base REF] [--verdict-out FILE]" >&2
   exit 2
 }
 
 MANIFEST="" ; INVENTORY="" ; CANDIDATE="" ; REPO="." ; VERDICT_OUT="" ; STRICT=""
+TOUCHED_SET=0 ; TOUCHED_VAL="" ; DIFF_BASE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --manifest)        MANIFEST="${2:-}";    shift 2 ;;
@@ -37,6 +39,8 @@ while [ $# -gt 0 ]; do
     --repo)            REPO="${2:-}";        shift 2 ;;
     --verdict-out)     VERDICT_OUT="${2:-}"; shift 2 ;;
     --strict-surfaces) STRICT="--strict-surfaces"; shift ;;
+    --touched)         TOUCHED_SET=1; TOUCHED_VAL="${2:-}"; shift 2 ;;
+    --diff-base)       DIFF_BASE="${2:-}";   shift 2 ;;
     -h|--help)         usage ;;
     *) echo "unknown arg: $1" >&2; usage ;;
   esac
@@ -48,11 +52,28 @@ GATE="$HERE/check_acceptance.py"
 [ -f "$GATE" ]      || { echo "ERROR: check_acceptance.py not found next to verify_completion.sh" >&2; exit 2; }
 [ -f "$CANDIDATE" ] || { echo "REJECT: candidate file missing: $CANDIDATE (fail closed)" >&2; exit 1; }
 
+# --diff-base REF: derive the TRUSTED touched set from `git diff REF...HEAD` against the
+# inventory's per-surface `paths` globs (so the uncovered-surface rule doesn't trust the worker).
+if [ -n "$DIFF_BASE" ]; then
+  DERIVE="$HERE/derive_touched.py"
+  [ -f "$DERIVE" ] || { echo "ERROR: derive_touched.py not found next to verify_completion.sh" >&2; exit 2; }
+  RAW="$(python3 -E "$DERIVE" --inventory "$INVENTORY" --git-diff "$DIFF_BASE")" \
+    || { echo "ERROR: derive_touched failed (fail closed)" >&2; exit 2; }
+  TOUCHED_VAL="$(printf '%s' "$RAW" | tr '\n' ',' | sed 's/,*$//')"
+  TOUCHED_SET=1
+  echo "diff-derived touched surfaces (base $DIFF_BASE): ${TOUCHED_VAL:-<none>}"
+fi
+
 # Run the PROTECTED gate hermetically. It enforces BOTH the state machine
 # (overstep / not-a-proposal) AND the artifact checks, and is authoritative.
 set +e
-python3 -E "$GATE" --manifest "$MANIFEST" --inventory "$INVENTORY" \
-  --candidate "$CANDIDATE" --repo "$REPO" $STRICT
+if [ "$TOUCHED_SET" -eq 1 ]; then
+  python3 -E "$GATE" --manifest "$MANIFEST" --inventory "$INVENTORY" \
+    --candidate "$CANDIDATE" --repo "$REPO" $STRICT --touched "$TOUCHED_VAL"
+else
+  python3 -E "$GATE" --manifest "$MANIFEST" --inventory "$INVENTORY" \
+    --candidate "$CANDIDATE" --repo "$REPO" $STRICT
+fi
 rc=$?
 set +e
 

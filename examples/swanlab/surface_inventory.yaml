@@ -1,0 +1,28 @@
+# Worked example surface_inventory.yaml — pairs with examples/swanlab/acceptance_manifest.yaml.
+# Copy to your repo's control/ and adapt. (The shipped control/surface_inventory.yaml is an
+# EMPTY template so a fresh install doesn't block.)
+#
+# `paths` are globs (fnmatch; `*` spans `/`) mapping changed files to a surface, used by
+# gate/derive_touched.py to compute a TRUSTED touched set from a git diff.
+#
+# NOTE: with --strict-surfaces, EVERY user-visible surface LISTED here must have a passing check
+# in the manifest. This example lists only surfaces it checks, so coverage is satisfied; it still
+# BLOCKS on its `review_items` (see acceptance_manifest.yaml) until a human resolves them. Add a
+# surface here only when you intend to gate it.
+
+surfaces:
+  - id: experiment_tracking
+    user_visible: true
+    description: "run names, dashboards, charts a human reads to judge a run"
+    paths: ["artifacts/runs/*", "*run_meta.json", "dashboards/*"]
+  - id: metrics_curves
+    user_visible: true
+    description: "training/eval curves that must be readable over time, not single points"
+    paths: ["*metrics.json", "artifacts/runs/*/eval/*"]
+  - id: case_examples
+    user_visible: true
+    description: "sample predictions / cases the user inspects"
+    paths: ["configs/*", "*cases/*"]
+
+  - id: internal_cache
+    user_visible: false

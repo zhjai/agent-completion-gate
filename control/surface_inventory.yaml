@@ -1,25 +1,18 @@
-# surface_inventory.yaml — PROTECTED (read-only to the worker agent).
-# Lists user-visible surfaces that, if touched, REQUIRE a passing acceptance check.
-# Drives the "unknowns fail closed" rule: touched + user_visible + no check => blocked.
-# Lives in agent-memory-kit's read-only control/ (or any read-only mount).
+# surface_inventory.yaml — PROTECTED (read-only to the worker). PROJECT-SPECIFIC.
+#
+# List the user-visible surfaces that, if touched, REQUIRE a passing check in
+# acceptance_manifest.yaml (drives "unknowns fail closed"). This shipped default is EMPTY so a
+# fresh install does not block — add your surfaces to opt in. A worked example: examples/swanlab/.
+#
+# `paths` (optional) are globs (fnmatch; `*` spans `/`) mapping changed files to a surface;
+# gate/derive_touched.py uses them to compute a TRUSTED touched set from a git diff (so the
+# uncovered-surface rule need not trust the worker's self-report). Keep them complete for every
+# user-visible surface, or use check_acceptance.py --strict-surfaces.
+#
+# Example surface (uncomment + adapt):
+#   - id: metrics_curves
+#     user_visible: true
+#     description: "training/eval curves a human reads"
+#     paths: ["*metrics.json", "artifacts/*/eval/*"]
 
-surfaces:
-  - id: experiment_tracking
-    user_visible: true
-    description: "run names, dashboards, charts a human reads to judge a run"
-  - id: metrics_curves
-    user_visible: true
-    description: "training/eval curves that must be readable over time, not single points"
-  - id: case_examples
-    user_visible: true
-    description: "sample predictions / cases the user inspects"
-  - id: reports
-    user_visible: true
-    description: "summaries / reports delivered to the user"
-  - id: exports
-    user_visible: true
-    description: "files / artifacts the user downloads or consumes downstream"
-
-  # Non-user-visible surfaces don't force a check here (keep this list honest, not bloated):
-  - id: internal_cache
-    user_visible: false
+surfaces: []

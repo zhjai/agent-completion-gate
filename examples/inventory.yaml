@@ -1,5 +1,10 @@
 surfaces:
   - id: case_examples
     user_visible: true
+    paths: ["config.json", "configs/*"]          # diff-derived touch detection
   - id: metrics_curves
     user_visible: true
+    paths: ["metrics.json", "*/metrics.json"]
+  - id: exports                                   # user-visible, but NO check in manifest.yaml
+    user_visible: true
+    paths: ["exports/*", "*.csv"]

@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.0
+
+- **Diff-derived touched surfaces** — close the `touched_surfaces` self-report gap (a worker could omit a surface it touched):
+  - `gate/derive_touched.py` maps changed files to surfaces via per-surface `paths` globs in the inventory, from a changed-file list or `git diff BASE...HEAD`.
+  - `check_acceptance.py --touched IDS` accepts a TRUSTED touched set (precedence: `--strict-surfaces` > `--touched` > worker self-report).
+  - `verify_completion.sh --diff-base REF` derives the set from git and passes it through; `--touched IDS` for a precomputed set.
+  - `surface_inventory.yaml` gains optional `paths` globs; `examples/diff_demo.sh` shows a worker under-reporting `exports` getting caught (default GRANTS, diff-derived BLOCKS).
+  - Hardened (bypasses found + reproduced in agent-arena review, then closed): `derive_touched.py` uses `git diff --no-renames --name-only -z` — a rename out of a surface's path no longer hides it (old path is kept), and special-char/newline paths stay raw instead of being git-quoted past the globs (and non-UTF-8 paths round-trip via `surrogateescape` instead of crashing). `examples/diff_rename_test.sh` is a runnable regression for both.
+- **Productionization** (external review: the repo was a concept kit; these make it usable out of the box):
+  - **Defaults no longer brick.** The shipped `gate/acceptance_manifest.yaml` + `control/surface_inventory.yaml` are now EMPTY, passable templates (you opt into strictness). The realistic SwanLab spec moved to `examples/swanlab/`. Previously the default inventory + manifest + `--strict-surfaces` could never reach `complete`.
+  - **Bug:** `review_queue` as a list of strings no longer crashes (`AttributeError`); both dict and string review items are handled.
+  - **New:** `check_acceptance.py --agent-writable-root DIR` fails closed if a protected spec is reachable inside the worker-writable workspace — it checks the **literal** path too, so a symlink placed in the root but pointing outside can't bypass it (a bypass found + reproduced in review). Makes invariant #1 enforceable at runtime, not just documented.
+  - `examples/swanlab/` uses `.json` (the loader never truly supported JSONC).
+  - **Self-CI + tests:** `tests/test_gate.py` (12 cases incl. overstep, missing/non-mapping/conflicting candidate, string `review_queue`, `--strict-surfaces`, `--touched`, `--agent-writable-root`, and import-shadow resistance) + `.github/workflows/test.yml` (compile + tests + all example scripts).
+  - **README rewritten** for a first-time reader: plain "what is this", a 60-second quick start, "use it in your project" steps, and what the agent does after installing the skill — concepts moved below. English + 中文.
+
 ## v0.2.0
 
 - **Shipped enforcement wiring** (`integrations/`) so "only an external verifier writes `complete`" is true out of the box, not left to the reader:

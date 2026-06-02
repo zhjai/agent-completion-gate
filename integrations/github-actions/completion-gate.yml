@@ -68,6 +68,9 @@ jobs:
           fi
           # --strict-surfaces: don't trust the worker's touched_surfaces; require EVERY
           # user-visible surface in the inventory to have a passing check.
+          # Precise alternative: replace --strict-surfaces with
+          #   --diff-base "origin/$GITHUB_BASE_REF"
+          # to derive the touched set from the PR's real diff via the inventory's `paths` globs.
           sh gate/verify_completion.sh \
             --manifest "$MANIFEST" --inventory "$INVENTORY" \
             --candidate "$CANDIDATE" --repo . --strict-surfaces

@@ -31,7 +31,7 @@ The harness/CI calls this on the completion path; nonzero must prevent `complete
 """
 
 from __future__ import annotations
-import argparse, json, sys
+import argparse, json, os, sys
 from pathlib import Path
 
 try:
@@ -40,11 +40,28 @@ except ImportError:
     print("ERROR: pyyaml required", file=sys.stderr); sys.exit(2)
 
 
-def load_protected(path: Path) -> dict:
-    """Load a protected spec file. Caller is responsible for mounting it read-only;
-    we additionally refuse to run if it sits inside the declared agent-writable dir."""
+def load_protected(path: Path, agent_writable_root: "Path | None" = None) -> dict:
+    """Load a protected spec file. Caller is responsible for mounting it read-only; if
+    --agent-writable-root is given we additionally REFUSE to run when the spec resolves
+    inside that root (invariant #1: the gate's spec must be outside the worker's reach)."""
     if not path.exists():
         print(f"BLOCKED: protected spec missing: {path}", file=sys.stderr); sys.exit(1)
+    if agent_writable_root is not None:
+        try:
+            root = agent_writable_root.resolve()
+            # Check BOTH the literal location (abspath, normalizes '..' WITHOUT following
+            # symlinks) and the symlink-resolved target. The literal check is the important one:
+            # if the spec is *reached through* a path inside the writable root, a worker can swap
+            # that path for a symlink pointing anywhere — so reject it regardless of target.
+            candidates = (Path(os.path.abspath(path)), path.resolve())
+        except OSError as e:
+            print(f"BLOCKED: cannot resolve spec path ({e}); fail closed.", file=sys.stderr); sys.exit(1)
+        for cand in candidates:
+            if cand == root or root in cand.parents:
+                print(f"BLOCKED: protected spec {path} is reachable inside the agent-writable root "
+                      f"{agent_writable_root} — it must be read-only / outside the worker's reach "
+                      f"(invariant #1).", file=sys.stderr)
+                sys.exit(1)
     return yaml.safe_load(path.read_text()) or {}
 
 
@@ -95,11 +112,20 @@ def main() -> int:
                     help="require EVERY user-visible surface in the inventory to have a passing "
                          "check; ignore the worker-reported touched_surfaces. Recommended in CI / "
                          "for untrusted workers (the touched_surfaces list is a worker self-report).")
+    ap.add_argument("--touched", metavar="IDS",
+                    help="comma-separated surface ids that were ACTUALLY touched (TRUSTED, "
+                         "caller-supplied — e.g. from derive_touched.py against a git diff). "
+                         "Overrides the worker-reported touched_surfaces for the uncovered-surface "
+                         "rule. Ignored if --strict-surfaces is set.")
+    ap.add_argument("--agent-writable-root", metavar="DIR",
+                    help="fail closed if the manifest/inventory resolve INSIDE this dir "
+                         "(the worker's writable workspace). Enforces invariant #1 at runtime.")
     a = ap.parse_args()
     repo = Path(a.repo)
+    awr = Path(a.agent_writable_root) if a.agent_writable_root else None
 
-    manifest = load_protected(Path(a.manifest))
-    inventory = load_protected(Path(a.inventory))
+    manifest = load_protected(Path(a.manifest), awr)
+    inventory = load_protected(Path(a.inventory), awr)
     candidate = yaml.safe_load(Path(a.candidate).read_text()) if Path(a.candidate).exists() else {}
     if not isinstance(candidate, dict):
         print(f"BLOCKED: candidate is not a mapping ({type(candidate).__name__}); fail closed.", file=sys.stderr)
@@ -125,10 +151,16 @@ def main() -> int:
         for s in sorted(must_check):
             if s not in covered:
                 blocked.append(f"strict-surfaces: user-visible surface '{s}' has no check")
+    elif a.touched is not None:
+        # TRUSTED touched set (e.g. derive_touched.py from a git diff). Overrides the worker.
+        touched = {t.strip() for t in a.touched.split(",") if t.strip()}
+        for s in sorted(touched):
+            if s in must_check and s not in covered:
+                blocked.append(f"touched user-visible surface (trusted/diff-derived), no check: {s}")
     else:
         # Default: use the worker-reported touched_surfaces. This is a SELF-REPORT, not trusted
-        # evidence — a worker can omit a surface it touched. Use --strict-surfaces, or feed a
-        # diff-derived candidate, whenever the worker is untrusted.
+        # evidence — a worker can omit a surface it touched. Use --strict-surfaces, or pass a
+        # diff-derived --touched, whenever the worker is untrusted.
         touched = set(candidate.get("touched_surfaces", []) or [])
         for s in touched:
             if s in must_check and s not in covered:
@@ -143,7 +175,8 @@ def main() -> int:
 
     # (4) any review item => blocked (needs-review == blocked, not annotation)
     for item in manifest.get("review_items", []) + candidate.get("review_queue", []):
-        blocked.append(f"needs-review (blocks completion): {item.get('id', item)}")
+        item_id = item.get("id", item) if isinstance(item, dict) else item
+        blocked.append(f"needs-review (blocks completion): {item_id}")
 
     if blocked:
         print("\nBLOCKED:")

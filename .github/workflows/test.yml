@@ -1,0 +1,34 @@
+# This repo's OWN CI — proves the gate runs and the security regressions hold.
+# (Not to be confused with integrations/github-actions/completion-gate.yml, which is the
+# TEMPLATE consumers copy to gate their own completions.)
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pyyaml==6.0.2"
+      - name: Byte-compile
+        run: python -m py_compile gate/check_acceptance.py gate/derive_touched.py
+      - name: CLI smoke
+        run: python gate/check_acceptance.py --help
+      - name: Unit / security regression tests
+        run: python tests/test_gate.py
+      - name: Example — gate blocks a fake completion, then grants a real one
+        run: sh examples/run.sh
+      - name: Example — diff-derived touched surfaces
+        run: sh examples/diff_demo.sh
+      - name: Regression — rename / special-char path bypasses stay closed
+        run: sh examples/diff_rename_test.sh

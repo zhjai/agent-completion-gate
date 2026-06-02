@@ -1,38 +1,23 @@
-# acceptance_manifest.yaml — PROTECTED (read-only to the worker).
-# Per-task machine checks. The gate runs these against REAL artifacts (never run_state).
-# Each check binds to a surface from surface_inventory.yaml.
-# Example below mirrors the SwanLab incident that motivated this kit.
+# acceptance_manifest.yaml — PROTECTED (read-only to the worker). PROJECT-SPECIFIC.
+#
+# This shipped default is an EMPTY, PASSABLE template: with no checks and no review_items, a
+# `candidate_complete` proposal is GRANTED. That is intentional — you OPT IN to strictness by
+# adding checks. Until then the gate enforces only the state machine (the worker cannot
+# self-declare `complete`), not any artifact criteria.
+#
+# Add machine checks that read REAL artifacts (never run_state). Each `surface` must match an id
+# in surface_inventory.yaml. Built-in check types: config_not_disabled, min_series_points,
+# identity_in_name, max_chart_count (extend run_machine_check() in gate/check_acceptance.py for
+# your own). A worked, realistic spec is in examples/swanlab/.
+#
+# Example check (uncomment + adapt):
+#   - id: val_curve_non_degenerate
+#     surface: metrics_curves
+#     type: min_series_points
+#     artifact: "artifacts/eval/metrics.json"
+#     series: "val/mae"
+#     min_points: 2
 
-objective: "example: A0 formal small matrix run"
-
-checks:
-  - id: run_identity_visible
-    surface: experiment_tracking
-    type: identity_in_name
-    artifact: "artifacts/runs/<run_id>/run_meta.json"
-    must_contain_any: ["stage1234", "stage234", "stage34"]   # branch identity must show
-
-  - id: val_curve_non_degenerate
-    surface: metrics_curves
-    type: min_series_points
-    artifact: "artifacts/runs/<run_id>/eval/metrics.json"
-    series: "val/normalized/mae"
-    min_points: 2                                            # not a single endpoint
-
-  - id: case_examples_present
-    surface: case_examples
-    type: config_not_disabled
-    config_path: "configs/<config>.jsonc"
-    key: "max_case_examples"                                 # must NOT be 0/None
-
-  - id: chart_budget_val
-    surface: experiment_tracking
-    type: max_chart_count
-    artifact: "artifacts/runs/<run_id>/eval/metrics.json"
-    group: "val"
-    max: 20                                                  # no chart explosion
-
-# Items that require human/CI judgment. PRESENCE OF ANY => BLOCKED (needs-review == blocked).
-review_items:
-  - id: dashboard_readability
-    description: "a human can distinguish branches and find the key curves at a glance"
+objective: "define your project's acceptance checks here (see examples/swanlab/)"
+checks: []
+review_items: []
