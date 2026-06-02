@@ -5,14 +5,15 @@
 #   1. Mark "verify-completion" a REQUIRED status check (branch protection on the base branch).
 #   2. CODEOWNERS-protect gate/, control/, and .github/workflows/completion-gate.yml so a
 #      worker can't weaken the gate in the same PR it must pass. (This workflow ALSO re-checks
-#      the gate out from the base branch as defence in depth — see the step below.)
-#   3. Keep the base branch protected; this job trusts gate/ + control/ FROM THE BASE REF.
+#      the gate out from a TRUSTED ref as defence in depth — see the step below.)
+#   3. Keep the trusted ref protected: this job runs gate/ + control/ from the PR base
+#      (pull_request) or the repo's DEFAULT branch (manual run) — never the dispatched branch.
 #
 # Model: `complete` == this required check is green. A worker can reach candidate_complete
 # (commit state/completion_candidate.yaml); only THIS check — on GitHub's runners, outside the
 # worker's control, un-`--no-verify`-able — grants completion by gating the merge. Its verdict
-# is the ONE canonical signal. NOTE: a hostile *base* branch or runner env can still defeat any
-# gate; this is "external + fail-closed under a trusted base", not "unbypassable".
+# is the ONE canonical signal. NOTE: a hostile *trusted* branch or runner env can still defeat
+# any gate; this is "external + fail-closed under a trusted ref + runner", not "unbypassable".
 name: completion-gate
 
 on:
@@ -40,14 +41,18 @@ jobs:
           python-version: "3.12"
       - run: pip install "pyyaml==6.0.2"   # pinned (hermetic)
 
-      - name: Use the PROTECTED gate from the base branch
-        if: github.event_name == 'pull_request'
+      - name: Use the PROTECTED gate from a trusted branch
+        env:
+          # PR base for pull_request; the repo's DEFAULT branch for a manual run.
+          # NEVER the (attacker-selectable) dispatched branch — running the gate from the
+          # dispatched branch was a self-approval bypass.
+          TRUSTED_REF: ${{ github.base_ref || github.event.repository.default_branch }}
         run: |
           set -eu
-          # A PR must not be judged by a gate the same PR can edit. Overwrite any PR-side
-          # changes to the gate + protected spec with the base-branch (trusted) version.
-          git fetch --no-tags --depth=1 origin "$GITHUB_BASE_REF"
-          git checkout "origin/$GITHUB_BASE_REF" -- gate control
+          # The gate must not be judged by code the PR / dispatched branch can edit. Restore
+          # gate/ + the protected spec from the trusted ref before running, on EVERY event.
+          git fetch --no-tags --depth=1 origin "$TRUSTED_REF"
+          git checkout "origin/$TRUSTED_REF" -- gate control
 
       - name: External completion verifier (fail-closed)
         run: |
