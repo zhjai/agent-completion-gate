@@ -5,9 +5,8 @@ check_acceptance.py — external completion gate. FAIL-CLOSED.
 Invariants (do NOT weaken — each was a hole a goal-driven agent could exploit;
 items 5-7 were added after a heterogeneous red-team found bypasses):
   1. This script + the manifest + the surface inventory must be PROTECTED:
-     read-only-mounted or outside the agent-writable workspace, AND outside any
-     lesson-promotion path (a worker must not be able to weaken the gate via a
-     promoted "lesson"). Completion truth sources are human/CI-maintained only.
+     read-only-mounted or outside the agent-writable workspace. A worker must not
+     be able to edit them. Completion truth sources are human/CI-maintained only.
   2. Checks inspect REAL artifacts (files, configs, run outputs) — NEVER the
      agent's run_state.yaml. run_state records belief, not verified truth.
   3. Unknowns fail closed: a touched user-visible surface with no passing check

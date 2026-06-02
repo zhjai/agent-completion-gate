@@ -1,0 +1,11 @@
+# surface_inventory.yaml — the user-visible surfaces of "the monthly sales report page".
+# These are the things the USER notices but the agent's goal ("add the page") may skip.
+surfaces:
+  - id: report
+    user_visible: true
+    description: "the rendered report the user reads"
+    paths: ["artifacts/report.json"]
+  - id: export
+    user_visible: true
+    description: "the CSV the user downloads"
+    paths: ["exports/*.csv"]

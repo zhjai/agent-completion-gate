@@ -28,7 +28,7 @@ worker writes state/completion_candidate.yaml  (status: candidate_complete — a
 | Agent Stop / completion hook | Partly — a worker with edit access to agent settings could remove it; in a managed setup the *human* owns settings | In-loop feedback: tells the agent "not done, here's why" before it stops |
 | Local git `pre-push` | Yes — `git push --no-verify`, or just don't install it | Local fast feedback only |
 
-So: **make the CI check a required status check, and protect the gate from the PR it judges.** A read-only script is not enough if the same PR can edit the script, the manifest, or the workflow. Put `gate/`, `control/`, and `.github/workflows/completion-gate.yml` behind **CODEOWNERS + branch protection** (invariant #1: the gate is human/CI-maintained, outside the agent-writable + lesson-promotion path).
+So: **make the CI check a required status check, and protect the gate from the PR it judges.** A read-only script is not enough if the same PR can edit the script, the manifest, or the workflow. Put `gate/`, `control/`, and `.github/workflows/completion-gate.yml` behind **CODEOWNERS + branch protection** (invariant #1: the gate is human/CI-maintained, outside the agent-writable workspace).
 
 **One canonical signal (invariant #7).** `complete` means exactly one thing: `verify_completion.sh` exited 0 (in CI). Every other "done" surface — chat, PR label, dashboard, the worker's own summary — must *derive* from that, never assert it independently. If a surface can say "done" without the gate, that surface is the bypass.
 

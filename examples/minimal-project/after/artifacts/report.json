@@ -1,0 +1,9 @@
+{
+  "report_title": "Monthly Sales — May 2026",
+  "rows": [
+    {"month": "2026-03", "sales": 900},
+    {"month": "2026-04", "sales": 1050},
+    {"month": "2026-05", "sales": 1200}
+  ],
+  "export_csv": true
+}

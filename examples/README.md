@@ -1,4 +1,14 @@
-# Example: the gate blocking a false completion (real, runnable)
+# Examples (all runnable)
+
+- [`minimal-project/`](minimal-project/) — **start here.** An everyday "add a monthly sales report page" task: before → BLOCKED, after → COMPLETE-OK. The clearest "why would I use this".
+- `run.sh` (below) — the gate + external verifier on the SwanLab fixture (overstep / blocked / granted).
+- [`diff_demo.sh`](diff_demo.sh) — catch a worker that under-reports which surfaces it touched (diff-derived).
+- [`diff_rename_test.sh`](diff_rename_test.sh) — regression: rename / special-char paths can't hide a touch.
+- [`swanlab/`](swanlab/) — a realistic, populated protected spec.
+
+---
+
+## SwanLab: the gate blocking a false completion (real, runnable)
 
 The SwanLab failure that motivated this kit, as a **runnable fixture**. The gate reads the **real files** and refuses to let the run reach `complete`. The transcripts below are actual output of `gate/check_acceptance.py` against the fixtures in this folder — not illustrations.
 

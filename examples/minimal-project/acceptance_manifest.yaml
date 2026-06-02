@@ -1,0 +1,26 @@
+# acceptance_manifest.yaml — what "done" actually means for this task, distilled BY A HUMAN
+# from what the user asked for (the gate does NOT infer this). "Add a monthly sales report page"
+# implies more than "a page exists": the user wants real data and the CSV export they asked for.
+objective: "monthly sales report page is actually usable"
+
+checks:
+  # a one-point chart is degenerate — the user wants a real trend, not a single dot
+  - id: report_has_multiple_points
+    surface: report
+    type: min_series_points
+    artifact: "artifacts/report.json"
+    series: "rows"
+    min_points: 2
+
+  # the CSV export the user expected must actually exist
+  - id: csv_export_present
+    surface: export
+    type: file_exists
+    path: "exports/monthly.csv"
+
+review_items: []
+
+# Other user-visible details (title still "Untitled", broken empty state, missing screenshot)
+# would each get their own check. The built-in types cover file_exists / config_not_disabled /
+# min_series_points / max_chart_count / identity_in_name; extend run_machine_check() in
+# gate/check_acceptance.py for project-specific ones (e.g. "title is not the placeholder").

@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.1
+
+- **Onboarding overhaul** (so a normal developer gets it, OpenSpec-style):
+  - `scripts/init.sh` — a deterministic, idempotent scaffolder you run yourself: drops `gate/` (engine + empty manifest), `control/`, `state/`, the CI workflow, and a CODEOWNERS example into your project, then prints exactly what *you* must protect. No more manual `cp`. The new `completion-gate-init` skill is a thin wrapper around it (the script is the authority — the agent never becomes the trust root of its own gate).
+  - `examples/minimal-project/` — an everyday "add a monthly sales report page" walkthrough (before → BLOCKED on a 1-point chart + missing CSV export; after → COMPLETE-OK). Replaces the ML/SwanLab story on the first screen; SwanLab stays as the deeper real-incident fixture.
+  - **README rewritten, problem-first**: leads with goal-driven agents missing user-visible acceptance details ("the goal is not the acceptance criteria"), an honesty note that a *human* writes the checks (the gate infers nothing), and one positioning line vs OpenSpec. Mechanism / state-machine / invariants moved below the fold. The demo is now "See it in action"; the quick start scaffolds into *your* repo. EN + idiomatic 中文.
+- **Fully decoupled from `agent-lessonbook` (formerly agent-memory).** The gate is standalone: it never reads any memory/lesson path at runtime (only `--manifest`/`--inventory`/`--candidate`/`--repo`), no longer says "depends on / built on / install first", and dropped the memory skills from `completion-audit`'s `related_skills`. Invariant #1 no longer references a "lesson-promotion path" (an external concept) — the gate is protected simply because it's outside the agent-writable workspace and human/CI-maintained. A lesson becomes gate policy only when a human edits the protected manifest.
+- **Onboarding fixes** (heterogeneous review, reproduced then fixed): `init.sh` no longer silently overwrites engine scripts on re-run (so a user's `run_machine_check()` extensions survive; `--force` to refresh); the `completion-gate-init` skill + README quick-start now give a resolvable command (clone the repo, run `scripts/init.sh` from the checkout) instead of a non-existent skill-dir path; fixed a duplicated section in the Chinese README.
+
 ## v0.3.0
 
 - **Diff-derived touched surfaces** — close the `touched_surfaces` self-report gap (a worker could omit a surface it touched):
@@ -30,9 +39,11 @@
   - **`--strict-surfaces`** requires every user-visible surface to have a passing check, so "unknowns fail closed" no longer trusts the worker's self-reported `touched_surfaces`.
   - CI template now **fail-closes on an absent candidate** by default (`ALLOW_NO_CANDIDATE` to opt out) and runs `gate/`+`control/` from the **base branch**, so a PR can't be judged by a gate it edits.
   - Docs corrected to stop overclaiming hermeticity / unbypassability — stated as "external + fail-closed under a trusted base branch + runner".
-- **Docs:** added a banner (`assets/banner.svg`), a Chinese `README.zh.md`, and broadened positioning to any Agent-Skills host (Claude Code · Codex · others). Corrected the dependency boundary — the gate **bundles** its own protected check spec (`acceptance_manifest.yaml` + `control/surface_inventory.yaml`); it reads `agent-memory`'s read-only `control/` for **rules + approved lessons** only.
+- **Docs:** added a banner (`assets/banner.svg`), a Chinese `README.zh.md`, and broadened positioning to any Agent-Skills host (Claude Code · Codex · others). Corrected the dependency boundary — the gate **bundles** its own protected check spec (`acceptance_manifest.yaml` + `control/surface_inventory.yaml`) and is self-contained. *(Earlier in v0.3.x this section described reading `agent-memory`'s `control/`; that coupling was removed — see the decoupling note above.)*
 
 ## v0.1.0
+
+> Historical snapshot of v0.1.0 behavior. Superseded by v0.3.1: the gate is now **fully standalone** and does **not** depend on / read `agent-memory` (now [`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook)) at runtime. Invariant #1 below mentions a "lesson-promotion path" — that concept was dropped; the gate is protected simply by being outside the agent-writable workspace.
 
 - Initial preview of `agent-completion-gate`: a **fail-closed completion gate + four-state machine** that stops a goal-driven agent from declaring work done that isn't.
 - State machine: `in_progress → candidate_complete → (external verifier) → complete | blocked`. The worker can only reach `candidate_complete` or `blocked`; only an external verifier writes `complete`. **`needs-review == blocked`** (not an annotation).

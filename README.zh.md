@@ -1,7 +1,7 @@
 # agent-completion-gate
 
 <p align="center">
-  <img src="assets/banner.svg" alt="agent-completion-gate —— 一道 fail-closed 的完成度 gate，阻止 agent 把没做完的活标成「完成」" width="100%">
+  <img src="assets/banner.svg" alt="agent-completion-gate —— 让 AI 编程 agent 证明自己真的做完了" width="100%">
 </p>
 
 <p align="center">
@@ -10,63 +10,109 @@
 
 <p align="center">
   <a href="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml"><img alt="CI" src="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml/badge.svg"></a>
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.0-informational">
+  <img alt="version" src="https://img.shields.io/badge/version-0.3.1-informational">
   <img alt="works with" src="https://img.shields.io/badge/Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20any%20agent-444">
-  <a href="https://github.com/zhjai/agent-memory"><img alt="depends" src="https://img.shields.io/badge/depends%20on-agent--memory-orange"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-yellow"></a>
 </p>
 
-> **别让 agent 把没做完的活说成「完成」。** agent 只能「提议」完成，真正放行的是一道外部检查——它去读真实产出文件，过了才授予 `complete`。
+> **让 AI 编程 agent 证明自己真的做完了。** agent 只能「提议」完成，由一道检查去读你**真实的产出文件**，过了才授予 `complete`。
 
-## 这是个啥（说人话）
+AI 编程 agent 是 goal 驱动的。你给 Codex 或 Claude Code 一个目标，它就会死命往主线上冲——把页面搭出来、把 bug 修掉、把训练跑完。可一到长任务，它常常漏掉那些你其实在意、但没明说、散在对话里、或者压根没写成测试的用户可见细节。
 
-AI 编码 agent 经常会把一个长任务报成「做完了」，可实际上没有：测试被悄悄跳过、图表是坏的、功能只接了一半。这些信息它上下文里其实都有，只是它的 goal 没把这些当成收尾的标准——而 goal 总有办法把你写下的各种叮嘱绕过去。
+**goal 不是验收标准。**
 
-`agent-completion-gate` 就是一道小小的 **fail-closed gate**。干活的 agent 最多只能把任务标到 `candidate_complete`（「我觉得这事儿成了」），到底成没成，由一道外部检查（`check_acceptance.py`）说了算——它读的是**真实产物**（真正的 config、真正的 metrics），只有真的过了，才由外部验证者（你的 CI 或一个 hook）授予 `complete`。整套东西就是几个纯文本文件 + 一个 Python 脚本，不依赖任何服务、账号，也不绑定厂商。
+举个例子——「加一个月度销售报表页」，最后可能页面有了、测试也过了，但 CSV 导出没做、图表只有一个数据点、标题还写着「Untitled」、空状态是坏的。agent 是真心觉得自己做完了。问题就出在这儿。
 
-## 60 秒上手
+`agent-completion-gate` 把「完成」变成一道外部验收检查。agent 最多只能提议 `candidate_complete`；一道受保护的 gate 去读**真实产物**,只有当一份**人写的**验收清单(manifest)通过时,才授予 `complete`。整套就是几个纯文本文件 + 一个 Python 脚本,不依赖服务、账号,也不绑定厂商。
+
+> gate 不会去猜用户想要什么;是**人**把验收标准提炼进 manifest,gate 只是不让 agent 拿一个更低的标准给自己盖章。它跟你的测试、CI 是互补的——它查的是团队很少写单测的那些用户可见面(漏了的导出、退化的图表、撞名的 run),不是代码对不对。
+
+OpenSpec 帮你在开工前想清楚**要做什么**;`agent-completion-gate` 在 agent 宣布完成之前,检查做出来的产物**够不够格验收**。
+
+## 30 秒看它干活
+
+看 gate 怎么读真实文件、跟一个嘴上说「做完了」的 agent 对着干：
 
 ```bash
 pip install pyyaml
 git clone https://github.com/zhjai/agent-completion-gate && cd agent-completion-gate
-sh examples/run.sh
+sh examples/minimal-project/run.sh
 ```
 
-你会看到 gate 先**拦下**一次假完成（case 展示被关、曲线只有一个点），再**放行**一次真完成。下面是 checker 的真实输出，不是摆样子：
+最日常的场景——「加一个月度销售报表页」。agent 两次都报 `candidate_complete`，区别只在真实产物：
 
 ```
-===== BAD (expect BLOCKED, exit 1) =====
-FAIL case_examples_present: max_case_examples=0 (must not be disabled)
-FAIL val_curve_non_degenerate: val/normalized/mae points=1 (min 2)
-BLOCKED:  ...  'complete' is NOT granted.   (exit 1)
+===== BEFORE — agent 把主线做了，细节漏了（预期 BLOCKED）=====
+FAIL report_has_multiple_points: rows points=1 (min 2)
+FAIL csv_export_present:         file exports/monthly.csv exists=False
+  -> BLOCKED (exit 1)。agent 没法把这个叫「完成」。
 
-===== GOOD (expect COMPLETE-OK, exit 0) =====
-PASS case_examples_present: max_case_examples=8 ...
-COMPLETE-OK: all machine checks passed ...           (exit 0)
+===== AFTER — agent 把真实产物补好了（预期 COMPLETE-OK）=====
+PASS report_has_multiple_points: rows points=3 (min 2)
+PASS csv_export_present:         file exports/monthly.csv exists=True
+  -> COMPLETE-OK (exit 0)。
 ```
 
-还可以看 [`examples/diff_demo.sh`](examples/diff_demo.sh)（抓出一个谎报「自己动了哪些东西」的 agent）和 [`examples/swanlab/`](examples/swanlab/)（一份贴近真实项目、填好内容的 spec）。
+还有：[`examples/run.sh`](examples/run.sh)（overstep / blocked / granted）、[`examples/diff_demo.sh`](examples/diff_demo.sh)（抓出谎报「自己动了哪些东西」的 agent）、[`examples/swanlab/`](examples/swanlab/)（催生这套工具的那次真实 ML 事故）。
 
-## 怎么用到你自己的项目里
+## 快速上手 —— 把 gate 装进你的仓库
 
-1. **装 skill**（任何 Agent-Skills 宿主都行，先装地基）：
+```bash
+cd your-project
+npx skills add zhjai/agent-completion-gate -g -a claude-code   # 也可 -a codex、cursor…… 任何宿主
+```
 
-   ```bash
-   npx skills add zhjai/agent-memory          -g -a claude-code   # 也可以 -a codex，或其它宿主
-   npx skills add zhjai/agent-completion-gate -g -a claude-code
-   ```
+然后**由你（人）**把 gate 搭进仓库——一条命令，不用手动拷文件：
 
-2. **把 gate 和 spec 模板拷进你的仓库**：复制本仓库的 `gate/` 和 `control/`。它们默认是**空的**——开箱状态下 gate 只强制状态机（agent 不能自己宣布 `complete`），空提议会被直接放行，所以**不会把你的流水线卡死**。要不要更严，下一步你自己开。*（拷过去之后改你自己那份，别把本仓库的 `gate/`/`control/` 当成活配置去 track，不然以后更新可能把你写的 check 覆盖掉。）*
+```bash
+# 引擎和脚手架在仓库里（skill 只教流程，不附带引擎）
+git clone https://github.com/zhjai/agent-completion-gate /tmp/acg
+cd your-project && sh /tmp/acg/scripts/init.sh --dest .
+```
 
-3. **定义「完成」到底是什么意思**：在 `gate/acceptance_manifest.yaml` 里写针对真实产物的机器检查（内置类型有 `config_not_disabled`、`min_series_points`、`identity_in_name`、`max_chart_count`，要扩展自己加）。再在 `control/surface_inventory.yaml` 里列出用户可见的 surface。一份可以直接抄的实战示例在 [`examples/swanlab/`](examples/swanlab/)。
+它会创建 `gate/`（引擎 + 一份**空的、能过的** manifest）、`control/surface_inventory.yaml`、`state/`、`.github/workflows/completion-gate.yml`，以及一份 CODEOWNERS 示例。幂等;不加 `--force` 绝不覆盖你改过的 spec。*（更想跟 agent 说一句就搞定?让它「set up the completion gate」即可——`completion-gate-init` skill 跑的就是这个脚本。脚本才是权威。）*
 
-4. **把它接成「权威」**：把 [`integrations/github-actions/completion-gate.yml`](integrations/github-actions/completion-gate.yml) 拷到 `.github/workflows/`，设成**必需的状态检查**。这样一来，`complete` 就等价于「这个检查变绿」。（接线细节和信任模型见 [`integrations/README.md`](integrations/README.md)。）
+> **刚装上时是故意「宽松」的。** 空 spec 是**放行**的——这时 gate 只拦住 agent 自己宣布 `complete`,它还**不知道**你项目的产物长啥样。要让它真有用,你得至少加一个 surface 和一条 check。
 
-5. *（可选）* **在 agent 自己的循环里盯着它**：加上 [`integrations/claude-code/`](integrations/claude-code/) 的 Stop-hook（同样可当 Codex 的 completion hook）——agent 想停下报完成时，会被当场告知「还没完，原因如下」。
+**1 —— 定义「完成」是什么意思**（人把意图提炼成 check，gate 不会替你猜）。改 `control/surface_inventory.yaml`：
+
+```yaml
+surfaces:
+  - id: report
+    user_visible: true
+    paths: ["artifacts/report.json"]
+```
+
+……再改 `gate/acceptance_manifest.yaml`：
+
+```yaml
+checks:
+  - id: report_has_multiple_points
+    surface: report
+    type: min_series_points
+    artifact: "artifacts/report.json"
+    series: "rows"
+    min_points: 2
+review_items: []
+```
+
+内置 check 类型：`file_exists`、`config_not_disabled`、`min_series_points`、`max_chart_count`、`identity_in_name`（要自定义就扩展 `run_machine_check()`）。更完整的实战 spec 见 [`examples/swanlab/`](examples/swanlab/)。
+
+**2 —— 本地跑一下：**
+
+```bash
+printf 'status: candidate_complete\ntouched_surfaces: [report]\nreview_queue: []\n' > state/completion_candidate.yaml
+python3 -E gate/check_acceptance.py --manifest gate/acceptance_manifest.yaml \
+  --inventory control/surface_inventory.yaml --candidate state/completion_candidate.yaml --repo .
+```
+
+数据点不够 → `BLOCKED`;真实产物补对了 → `COMPLETE-OK`。
+
+**3 —— 把它接成「权威」。** scaffold 出来的 `.github/workflows/completion-gate.yml` 会在每个 PR 上跑这道检查。把 **`verify-completion` job 设成必需的状态检查**,再用 CODEOWNERS 保护 `gate/`、`control/` 和那个 workflow(见生成的 `.github/CODEOWNERS.completion-gate.example`)。这样一来,`complete` 就只剩一个含义:那道检查变绿。信任模型 + 可选的 agent Stop-hook 见 [`integrations/README.md`](integrations/README.md)。
 
 ## 装完 skill 之后，agent 会做什么
 
-`completion-audit` 这个 skill 会告诉 agent：任务收尾时，先写一个 `completion_candidate.yaml`（`status: candidate_complete`，外加它动过的 surface），然后跑 gate。agent 顶天只能到 `candidate_complete`——只有外部验证者（CI / hook）才会写 `complete`。一旦被拦，它就去修真实产物，再重新过一遍。
+`completion-audit` 这个 skill 会告诉 agent：任务收尾时，先写 `state/completion_candidate.yaml`（`status: candidate_complete`，外加它动过的 surface），然后跑 gate。agent 顶天只能到 `candidate_complete`——只有外部验证者（CI / hook）才会写 `complete`。一旦被拦，它就去修真实产物，再重新过一遍。你的循环就是：*干活 → 审完成度 → 看 CI 裁决 → 修掉 blocked 原因，或者合并。*
 
 ## 它是怎么工作的——四个状态
 
@@ -85,9 +131,15 @@ worker 只能走到 `candidate_complete` 或 `blocked`。**只有外部验证者
 - **记忆**记的是「它以为」，不是「已验证的事实」。
 - 只有一道 **agent 改不动、绕不过、也伪造不了所读产物的 gate**，才能真正拦住「看着像完成、其实没完成」。
 
-## 依赖 agent-memory
+## 它在整条链路里的位置
 
-[`agent-memory`](https://github.com/zhjai/agent-memory) 是地基（先装它）：它存项目的**规则 + 已批准的 lesson**——也就是人/CI 维护、你再把它提炼进 gate manifest 的那层策略。gate **自带受保护的检查规格**（`gate/` + `control/`），脚本运行时只读自己的 `--manifest`/`--inventory`，绝不碰 worker 可写的 `state/`。agent-memory 能独立用；这套 kit 是叠在上面、可选的强制层。
+```
+OpenSpec               —— 开工前的规划（先对齐要做什么）
+agent-lessonbook       —— 干活过程中记录纠正与跑偏教训
+agent-completion-gate  —— 宣布「完成」之前的验收
+```
+
+[`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook) 是个**可选搭档**，在执行过程中记录纠正与跑偏教训。本 gate **可独立使用**——它运行时不读 lessonbook（或任何 memory），只读自己的 `--manifest`/`--inventory`。只有人能把反复出现的 lesson 提炼进 gate 受保护的 manifest。
 
 ## 安全模型与不变量
 
@@ -102,11 +154,12 @@ worker 只能走到 `candidate_complete` 或 `blocked`。**只有外部验证者
 
 ## 文档
 
+- [`scripts/init.sh`](scripts/init.sh) —— 把 gate 搭进你的项目（权威的初始化路径）。
 - [`STATE_MACHINE.md`](STATE_MACHINE.md) —— 完成度契约（状态、流转、接线）。
 - [`integrations/README.md`](integrations/README.md) —— CI / agent-hook / pre-push 接线 + 信任模型。
-- [`examples/`](examples/) —— 可直接跑：`run.sh`、`diff_demo.sh`、`diff_rename_test.sh`、`swanlab/`。
+- [`examples/`](examples/) —— 可直接跑：[`minimal-project/`](examples/minimal-project/)（日常 web 任务）、`run.sh`、`diff_demo.sh`、`diff_rename_test.sh`、`swanlab/`（ML 事故）。
 - [`CHANGELOG.md`](CHANGELOG.md) · 自测在 [`tests/`](tests/)。
 
 ## 状态
 
-`v0.3.0` 预览版。MIT。Agent 无关、基于文件、fail-closed。地基：[`agent-memory`](https://github.com/zhjai/agent-memory)。
+`v0.3.1` 预览版。MIT。Agent 无关、基于文件、fail-closed。可选搭档：[`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook)。
