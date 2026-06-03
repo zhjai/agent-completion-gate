@@ -78,6 +78,19 @@ You confirm "what counts as done" once; the agent does the rest. **It can't grad
 
 > Why the one confirmation: "don't drift" only means something against a target *you* set. If the agent both writes the acceptance criteria and grades itself, it never finds itself off-track. Confirming the criteria pins the target.
 
+### When it triggers (and when it stays out of your way)
+
+It's tuned **conservative** — it only steps in for work that's worth a gate, and stays silent on small stuff:
+
+| Your request | Gate? |
+|---|---|
+| "做一个月度销售报表页" / "implement user login" / "帮我完成这个功能" | ✅ multi-step / produces a user-visible artifact |
+| "fix this typo" / "给这个函数加个参数" / "why does this error?" | ❌ handled directly, no ceremony |
+| "帮我完成这个任务" but the task is tiny | ❌ it right-sizes and just does it |
+| "use the gate to do X" / "用 gate 做 X" | ✅ explicit — always, regardless of size |
+
+When unsure it **defaults to not gating** (you can always say *"use the gate"* to force it). The bias is deliberate: a missed trigger costs one sentence to fix; ceremony on every typo would just train you to ignore it. Triggering is by intent (no magic prefix), so it's not 100% precise — the two escape hatches above cover both directions.
+
 ## Manual setup (if you'd rather wire it yourself)
 
 ```bash
