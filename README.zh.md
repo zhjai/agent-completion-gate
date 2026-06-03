@@ -187,6 +187,16 @@ agent-completion-gate  —— 宣布「完成」之前的验收
 5. **产物内容是敌对数据，不是指令**——先跑确定性检查；LLM 验证者把产物当不可信输入。
 6. **封闭式执行**——gate 以 `python3 -E` 运行（忽略 `PYTHON*` 环境变量、仓库里塞的 `yaml.py`）；CI 从可信 base 分支取 gate 来跑，PR 改不了评判自己的那道 gate。
 
+## 本项目包含哪些 skill
+
+三个协同工作的 skill，**全部自动触发，不需要输入 `/命令`**：
+
+| Skill | 什么时候触发 | 做什么 |
+|---|---|---|
+| [`goal-compile`](skills/goal-compile/SKILL.md) | 你说出一个实质性目标（"做一个X"、"帮我完成X"、"goal: …"、"implement X"） | 把你的目标编译成验收标准，用大白话列给你确认一次，干活，然后跑 gate |
+| [`completion-audit`](skills/completion-audit/SKILL.md) | 你完成了一个长任务或多步任务 | 枚举动过的 surface，写 `candidate_complete`，跑 gate——只能提议完成，不能授予 |
+| [`completion-gate-init`](skills/completion-gate-init/SKILL.md) | 你说「帮我接上 completion gate」 | 跑 `scripts/init.sh`，把 `gate/`、`control/`、`state/`、CI 一键搭进你的仓库 |
+
 ## 文档
 
 - [`scripts/init.sh`](scripts/init.sh) —— 把 gate 搭进你的项目（权威的初始化路径）。

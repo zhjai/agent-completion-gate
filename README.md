@@ -188,6 +188,16 @@ Hardened across multiple heterogeneous (Codex × Claude) review rounds — each 
 5. **Artifact content is hostile data, not instructions** — deterministic checks first; an LLM verifier treats artifacts as untrusted.
 6. **Hermetic execution** — the gate runs as `python3 -E` (ignores `PYTHON*` env / repo-planted `yaml.py`), and CI runs it from the trusted base branch so a PR can't edit the gate that judges it.
 
+## What's inside
+
+Three skills that work together — they fire automatically, no `/command` needed:
+
+| Skill | Triggers when… | What it does |
+|---|---|---|
+| [`goal-compile`](skills/goal-compile/SKILL.md) | You state a substantial goal ("做一个X", "帮我完成X", "goal: …", "implement X") | Compiles your goal into acceptance criteria, confirms once in plain language, executes, then runs the gate |
+| [`completion-audit`](skills/completion-audit/SKILL.md) | You finish a long or multi-step task | Enumerates touched surfaces, writes `candidate_complete`, runs the gate — proposes done, never grants it |
+| [`completion-gate-init`](skills/completion-gate-init/SKILL.md) | You ask to "set up the completion gate" | Runs `scripts/init.sh` to scaffold `gate/`, `control/`, `state/`, and CI into your repo |
+
 ## Docs
 
 - **Skills**: [`goal-compile`](skills/goal-compile/SKILL.md) (goal-first entry — say a goal, confirm criteria once), [`completion-audit`](skills/completion-audit/SKILL.md) (wrap-up: propose `candidate_complete` + run the gate), [`completion-gate-init`](skills/completion-gate-init/SKILL.md) (scaffold via the script).
