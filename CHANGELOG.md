@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.1
+
+- **`goal-compile` now right-sizes — small tasks skip the gate.** Two fixes from real-use feedback (settled in agent-arena):
+  - **Broader, prefix-free triggering:** natural phrasings fire it too — "帮我完成这个任务/目标", "help me build/implement X", "做一个 X" — not just "设计goal:"/"goal:". No magic word required.
+  - **Right-size step 0 (before any ceremony):** the skill now classifies the task first. A typo / one-line / single-function / one-off request is handled **directly with no init, no criteria, no confirmation** (at most a one-line "say 'use the gate' if you want criteria"). The init + confirm + gate ceremony only runs for substantial work (multi-step / multi-file / user-visible artifact). When unsure it defaults to small. Bias: under-fire (recoverable with "use the gate") over over-fire (ceremony on trivial work erodes trust). The gate is per-goal, not per-utterance — sub-steps inside a goal don't re-trigger it.
+
 ## v0.4.0
 
 - **Goal-first lazy mode** — new [`goal-compile`](skills/goal-compile/SKILL.md) skill. The user just states a goal in natural language ("设计goal: …", "goal: add a monthly sales report page", "我的目标是…" — no fixed prefix; the skill auto-triggers on intent). It auto-initializes the gate if absent, compiles the goal into acceptance criteria (surfaces + machine checks + review items), **confirms the criteria with the user once, in plain language, before doing the work** (like confirming a plan — no hand-written YAML), then executes and runs the gate. Cuts the old skill→clone→init→hand-write-YAML friction to one sentence + one confirmation.

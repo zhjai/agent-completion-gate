@@ -1,9 +1,9 @@
 ---
 name: goal-compile
-description: 'Use when the user states a goal or long-term task for the agent to carry out and keep on track — e.g. "设计goal: ...", "我的目标是...", "goal: add a monthly sales report page", "long-term task proposal: ...", or "use the completion gate to do X". Turns the natural-language goal into completion-gate acceptance criteria (surfaces + machine checks + review_items), auto-initializing the gate if absent, gets the user to confirm the criteria once (like confirming a plan) before work, then drives the task to the gate verdict. The agent DRAFTS criteria; it never self-certifies — a human confirms the criteria, and only the external gate grants complete.'
+description: 'Use when the user asks the agent to carry out and keep track of a substantial goal, naturally phrased with or without a prefix: "设计goal: ...", "goal: ...", "我的目标是...", "help me finish/build/implement X", "帮我完成这个任务/目标", "做一个X", or "use the completion gate to do X". Trigger for long-running, multi-step, multi-file, or user-visible-artifact work such as a feature, page, report, export, workflow, schema, release, migration, experiment, or integration. Do NOT use for typo fixes, one-line tweaks, isolated single-function or mechanical single-file edits, one-off questions, simple lookups, or ordinary small tasks; handle those directly unless the user explicitly asks to use the gate. Compiles the goal into completion-gate acceptance criteria (surfaces + machine checks + review_items), auto-initializes the gate if absent, confirms the criteria with the user once before work (like confirming a plan), then drives the task to the gate verdict. The agent DRAFTS criteria and never self-certifies: a human confirms the criteria, and only the external gate grants complete.'
 license: MIT
 metadata:
-  version: "0.4.0"
+  version: "0.4.1"
   author: zhjai
   tags: "goal, completion, gate, acceptance, long-task, goal-first"
   related_skills: "completion-gate-init, completion-audit"
@@ -20,9 +20,16 @@ authority on "done". A human confirms the criteria, and only the external gate g
 A goal-driven agent that writes its own lax checks and grades itself has defeated the entire point.
 
 ## When to use
-- The user states a goal / long-term task: "设计goal: …", "我的目标是…", "goal: …", "long-term task proposal: …", "use the gate to build X".
+- The user sets a **substantial** goal / multi-step / long task, however phrased: "设计goal: …", "goal: …", "我的目标是…", "帮我完成这个任务/目标", "help me build/implement X", "做一个 X", "use the gate to build X". No fixed prefix needed.
+- **Not** for small / one-off / single-file work — see step 0.
 
 ## Procedure (Standard mode — the default)
+
+0. **Right-size before any ceremony.** Before compiling criteria, asking for confirmation, or initializing the gate, classify the request:
+   - **GATE-WORTHY** — the user explicitly asked to use the gate, OR the task is long-running, multi-step, spans multiple files/surfaces, or produces a user-visible artifact (feature, page, report, export, workflow, schema, release, migration, experiment, integration). → continue to step 1.
+   - **TOO SMALL** — a typo fix, a one-line / single-function / mechanical single-file edit, a one-off question, a simple lookup, or an ordinary small task. **Do not init, compile, confirm, or write gate specs.** Just do the task, and say at most once: *"Small task — handling it directly; say 'use the gate' if you want acceptance criteria."* Do not ask whether to gate it; do not repeat that line within a run.
+   - When **unsure, default to TOO SMALL** unless the user explicitly asked for the gate. Over-firing (ceremony on trivial work) erodes trust in the gate; under-firing is cheap — the user just says "use the gate".
+   - **Per goal, not per utterance:** once a goal's criteria are confirmed and being driven, the small sub-steps *inside* that goal do NOT re-trigger this skill.
 
 1. **Auto-init if absent.** If the repo has no `gate/` + `control/surface_inventory.yaml` +
    `gate/acceptance_manifest.yaml`, scaffold them: run `scripts/init.sh --dest .` from an
