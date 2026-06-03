@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml"><img alt="CI" src="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml/badge.svg"></a>
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.1-informational">
+  <img alt="version" src="https://img.shields.io/badge/version-0.4.0-informational">
   <img alt="works with" src="https://img.shields.io/badge/Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20any%20agent-444">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-yellow"></a>
 </p>
@@ -55,7 +55,30 @@ PASS csv_export_present:         file exports/monthly.csv exists=True
 
 More: [`examples/run.sh`](examples/run.sh) (overstep / blocked / granted), [`examples/diff_demo.sh`](examples/diff_demo.sh) (catch a worker under-reporting what it touched), [`examples/swanlab/`](examples/swanlab/) (the real ML incident that motivated this kit).
 
-## Quick start — add the gate to your repo
+## Lazy mode (goal-first) — recommended
+
+Install the skill once, then just **say your goal** — no YAML, no manual init:
+
+```bash
+npx skills add zhjai/agent-completion-gate -g -a claude-code   # or -a codex, cursor, … any host
+```
+
+```text
+设计goal: 做一个月度销售报表页，要有图表、CSV 导出、空状态、正确标题
+# or: "goal: add a monthly sales report page with chart, CSV export, empty state, correct title"
+```
+
+The `goal-compile` skill fires automatically and:
+1. **auto-initializes** the gate if this repo doesn't have it yet,
+2. **compiles your goal** into acceptance criteria (surfaces + machine checks + review items),
+3. **shows you the criteria once, in plain language, to confirm** (like confirming a plan) — *before* doing the work,
+4. does the task, then runs the gate until it passes.
+
+You confirm "what counts as done" once; the agent does the rest. **It can't grade itself** — it drafts the criteria, you confirm them, and only the external gate grants `complete`. (Say "just do it, don't ask" for a fully-automatic *self-check* instead — reported as `SELF-CHECK-OK`, which is **not** a verified completion.)
+
+> Why the one confirmation: "don't drift" only means something against a target *you* set. If the agent both writes the acceptance criteria and grades itself, it never finds itself off-track. Confirming the criteria pins the target.
+
+## Manual setup (if you'd rather wire it yourself)
 
 ```bash
 cd your-project
@@ -154,6 +177,7 @@ Hardened across multiple heterogeneous (Codex × Claude) review rounds — each 
 
 ## Docs
 
+- **Skills**: [`goal-compile`](skills/goal-compile/SKILL.md) (goal-first entry — say a goal, confirm criteria once), [`completion-audit`](skills/completion-audit/SKILL.md) (wrap-up: propose `candidate_complete` + run the gate), [`completion-gate-init`](skills/completion-gate-init/SKILL.md) (scaffold via the script).
 - [`scripts/init.sh`](scripts/init.sh) — scaffold the gate into your project (the authoritative setup path).
 - [`STATE_MACHINE.md`](STATE_MACHINE.md) — the completion contract (states, transitions, wiring).
 - [`integrations/README.md`](integrations/README.md) — CI / agent-hook / pre-push wiring + the trust model.
@@ -162,4 +186,4 @@ Hardened across multiple heterogeneous (Codex × Claude) review rounds — each 
 
 ## Status
 
-`v0.3.1` preview. MIT. Agent-agnostic, file-based, fail-closed. Optional companion: [`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook).
+`v0.4.0` preview. MIT. Agent-agnostic, file-based, fail-closed. Optional companion: [`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook).

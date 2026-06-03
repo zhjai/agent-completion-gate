@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml"><img alt="CI" src="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml/badge.svg"></a>
-  <img alt="version" src="https://img.shields.io/badge/version-0.3.1-informational">
+  <img alt="version" src="https://img.shields.io/badge/version-0.4.0-informational">
   <img alt="works with" src="https://img.shields.io/badge/Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20any%20agent-444">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-yellow"></a>
 </p>
@@ -55,7 +55,29 @@ PASS csv_export_present:         file exports/monthly.csv exists=True
 
 还有：[`examples/run.sh`](examples/run.sh)（overstep / blocked / granted）、[`examples/diff_demo.sh`](examples/diff_demo.sh)（抓出谎报「自己动了哪些东西」的 agent）、[`examples/swanlab/`](examples/swanlab/)（催生这套工具的那次真实 ML 事故）。
 
-## 快速上手 —— 把 gate 装进你的仓库
+## 懒人模式（goal-first）—— 推荐
+
+装一次 skill，然后**直接说目标**——不碰 YAML、不用手动 init：
+
+```bash
+npx skills add zhjai/agent-completion-gate -g -a claude-code   # 也可 -a codex、cursor…… 任何宿主
+```
+
+```text
+设计goal: 做一个月度销售报表页，要有图表、CSV 导出、空状态、正确标题
+```
+
+`goal-compile` skill 会自动触发，然后：
+1. 这个 repo 还没接 gate 的话，**自动初始化**；
+2. **把你的目标编译成验收标准**（surfaces + 机器 check + review 项）；
+3. **用大白话把验收标准列给你确认一次**（像确认 plan 一样）—— 在动工*之前*；
+4. 干活，然后跑 gate 直到通过。
+
+你只需确认一次"什么算完成"，剩下交给 agent。**它不能给自己打分**——它起草验收标准、你确认、只有外部 gate 才授予 `complete`。（你也可以说"别问我，自动来"，那就是全自动*自检*，输出 `SELF-CHECK-OK`，这**不是**已验证的完成。）
+
+> 为什么要确认这一次："别跑偏"只有相对*你*定的靶子才有意义。如果验收标准是 agent 自己写、又自己判分，它永远不会觉得自己偏了。你确认验收标准，就是把靶子钉死。
+
+## 手动接入（想自己接线的话）—— 把 gate 装进你的仓库
 
 ```bash
 cd your-project
@@ -162,4 +184,4 @@ agent-completion-gate  —— 宣布「完成」之前的验收
 
 ## 状态
 
-`v0.3.1` 预览版。MIT。Agent 无关、基于文件、fail-closed。可选搭档：[`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook)。
+`v0.4.0` 预览版。MIT。Agent 无关、基于文件、fail-closed。可选搭档：[`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook)。

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.0
+
+- **Goal-first lazy mode** — new [`goal-compile`](skills/goal-compile/SKILL.md) skill. The user just states a goal in natural language ("设计goal: …", "goal: add a monthly sales report page", "我的目标是…" — no fixed prefix; the skill auto-triggers on intent). It auto-initializes the gate if absent, compiles the goal into acceptance criteria (surfaces + machine checks + review items), **confirms the criteria with the user once, in plain language, before doing the work** (like confirming a plan — no hand-written YAML), then executes and runs the gate. Cuts the old skill→clone→init→hand-write-YAML friction to one sentence + one confirmation.
+  - **Trust boundary preserved (the whole point):** the agent only *drafts* criteria and *proposes*; a human confirms them and only the external gate grants `complete`. It never self-certifies. Confirm-before-work (not after) so criteria can't be biased toward whatever was already built. Where CI/CODEOWNERS own the specs, the agent can only propose a diff (stays `needs_criteria_approval` until merged).
+  - **Lite mode** (only if the user explicitly opts out of confirming): self-check against the agent's own drafted criteria, reported as **`SELF-CHECK-OK`** — explicitly **not** a verified completion, never `COMPLETE-OK`.
+- README leads with this as the recommended path; manual setup kept below for those who want to wire it themselves.
+- Fixed the GitHub About/topics that still said "Built on agent-memory" — the gate is standalone (decoupled in v0.3.1).
+
 ## v0.3.1
 
 - **Onboarding overhaul** (so a normal developer gets it, OpenSpec-style):

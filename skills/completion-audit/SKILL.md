@@ -3,10 +3,10 @@ name: completion-audit
 description: Use before declaring a long, multi-stage, or artifact-producing task done — prepare a completion CANDIDATE (not a completion). Enumerate touched user-visible surfaces, reconcile thread expectations against the plan, gather real evidence paths, and run the external gate; any uncovered surface, failed check, or review item forces blocked. Use at task wrap-up for long/high-stakes work. Do not use to declare completion yourself — only an external verifier grants `complete`.
 license: MIT
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
   author: zhjai
   tags: "completion, gate, acceptance, long-task, completion-control, audit"
-  related_skills: "completion-gate-init"
+  related_skills: "goal-compile, completion-gate-init"
 ---
 
 # Completion Audit
