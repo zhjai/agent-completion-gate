@@ -55,13 +55,13 @@ PASS csv_export_present:         file exports/monthly.csv exists=True
 
 More: [`examples/run.sh`](examples/run.sh) (overstep / blocked / granted), [`examples/diff_demo.sh`](examples/diff_demo.sh) (catch a worker under-reporting what it touched), [`examples/swanlab/`](examples/swanlab/) (the real ML incident that motivated this kit).
 
-## Lazy mode (goal-first) — recommended
-
-Install the skill once, then just **say your goal** — no YAML, no manual init:
+## Get started — one command
 
 ```bash
 npx skills add zhjai/agent-completion-gate -g -a claude-code   # or -a codex, cursor, … any host
 ```
+
+That's it. Then just **say your goal** — the skill handles the rest (including scaffolding the gate into your repo on first use):
 
 ```text
 设计goal: 做一个月度销售报表页，要有图表、CSV 导出、空状态、正确标题
@@ -69,7 +69,7 @@ npx skills add zhjai/agent-completion-gate -g -a claude-code   # or -a codex, cu
 ```
 
 The `goal-compile` skill fires automatically and:
-1. **auto-initializes** the gate if this repo doesn't have it yet,
+1. **scaffolds the gate** into your repo if it isn't there yet (`gate/`, `control/`, `state/`, CI workflow),
 2. **compiles your goal** into acceptance criteria (surfaces + machine checks + review items),
 3. **shows you the criteria once, in plain language, to confirm** (like confirming a plan) — *before* doing the work,
 4. does the task, then runs the gate until it passes.
@@ -91,24 +91,26 @@ It's tuned **conservative** — it only steps in for work that's worth a gate, a
 
 When unsure it **defaults to not gating** (you can always say *"use the gate"* to force it). The bias is deliberate: a missed trigger costs one sentence to fix; ceremony on every typo would just train you to ignore it. Triggering is by intent (no magic prefix), so it's not 100% precise — the two escape hatches above cover both directions.
 
-## Manual setup (if you'd rather wire it yourself)
+## Wire it up yourself (optional)
+
+After installing the skill, you can scaffold the gate manually instead of waiting for the first goal:
 
 ```bash
-cd your-project
-npx skills add zhjai/agent-completion-gate -g -a claude-code   # or -a codex, cursor, … any host
+# tell your agent:
+"set up the completion gate"
+# the completion-gate-init skill runs scripts/init.sh --dest . for you
 ```
 
-Then **you** (a human) scaffold the gate into your repo — one command, no manual copying:
+Or run it directly:
 
 ```bash
-# the engine + scaffolder live in the repo (the skill teaches the procedure; it doesn't ship the engine)
 git clone https://github.com/zhjai/agent-completion-gate /tmp/acg
 cd your-project && sh /tmp/acg/scripts/init.sh --dest .
 ```
 
-It creates `gate/` (the engine + an **empty, passable** manifest), `control/surface_inventory.yaml`, `state/`, `.github/workflows/completion-gate.yml`, and a CODEOWNERS example. Idempotent; never clobbers your edited specs without `--force`. *(Prefer typing one line to your agent? Ask it to "set up the completion gate" — the `completion-gate-init` skill runs this same script. The script is the source of truth.)*
+Creates `gate/` (engine + empty passable manifest), `control/surface_inventory.yaml`, `state/`, `.github/workflows/completion-gate.yml`, and a CODEOWNERS example. Idempotent; never clobbers your edited specs without `--force`.
 
-> **Fresh install is intentionally permissive.** Empty specs *pass* — at this point the gate only stops the agent from self-declaring `complete`; it does **not** yet know your project's artifacts. To make it useful you add at least one surface and one check.
+> **Fresh install is intentionally permissive.** Empty specs *pass* — the gate only blocks the agent from self-declaring `complete`; it doesn't yet know your project's artifacts. To make it meaningful, add at least one surface and one check.
 
 **1 — Define what "done" means** (the human distills intent into checks; the gate doesn't infer it). Edit `control/surface_inventory.yaml`:
 

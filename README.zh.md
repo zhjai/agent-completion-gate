@@ -55,25 +55,25 @@ PASS csv_export_present:         file exports/monthly.csv exists=True
 
 还有：[`examples/run.sh`](examples/run.sh)（overstep / blocked / granted）、[`examples/diff_demo.sh`](examples/diff_demo.sh)（抓出谎报「自己动了哪些东西」的 agent）、[`examples/swanlab/`](examples/swanlab/)（催生这套工具的那次真实 ML 事故）。
 
-## 懒人模式（goal-first）—— 推荐
-
-装一次 skill，然后**直接说目标**——不碰 YAML、不用手动 init：
+## 开始使用——一条命令
 
 ```bash
 npx skills add zhjai/agent-completion-gate -g -a claude-code   # 也可 -a codex、cursor…… 任何宿主
 ```
+
+就这一步。然后**直接说你的目标**——剩下的交给 skill（包括首次使用时把 gate 搭进你的仓库）：
 
 ```text
 设计goal: 做一个月度销售报表页，要有图表、CSV 导出、空状态、正确标题
 ```
 
 `goal-compile` skill 会自动触发，然后：
-1. 这个 repo 还没接 gate 的话，**自动初始化**；
+1. 如果仓库里还没有 gate，**自动搭好**（`gate/`、`control/`、`state/`、CI workflow）；
 2. **把你的目标编译成验收标准**（surfaces + 机器 check + review 项）；
 3. **用大白话把验收标准列给你确认一次**（像确认 plan 一样）—— 在动工*之前*；
 4. 干活，然后跑 gate 直到通过。
 
-你只需确认一次"什么算完成"，剩下交给 agent。**它不能给自己打分**——它起草验收标准、你确认、只有外部 gate 才授予 `complete`。（你也可以说"别问我，自动来"，那就是全自动*自检*，输出 `SELF-CHECK-OK`，这**不是**已验证的完成。）
+你只需确认一次"什么算完成"，剩下交给 agent。**它不能给自己打分**——它起草验收标准、你确认、只有外部 gate 才授予 `complete`。（你也可以说"别问我，自动来"，那就是全自动自检，输出 `SELF-CHECK-OK`，这**不是**已验证的完成。）
 
 > 为什么要确认这一次："别跑偏"只有相对*你*定的靶子才有意义。如果验收标准是 agent 自己写、又自己判分，它永远不会觉得自己偏了。你确认验收标准，就是把靶子钉死。
 
@@ -90,24 +90,26 @@ npx skills add zhjai/agent-completion-gate -g -a claude-code   # 也可 -a codex
 
 拿不准时**默认不上 gate**（你随时可以说*"用 gate 做这个"*强制拉起）。这个偏向是刻意的：漏触发只要补一句话；而每个错别字都套仪式只会让你学会无视它。触发靠语义判断（不用固定咒语），所以不是 100% 精确——上面两个兜底（强制 / 静默放过）覆盖了两个方向。
 
-## 手动接入（想自己接线的话）—— 把 gate 装进你的仓库
+## 手动接线（可选）
+
+装完 skill 之后，如果不想等第一个 goal 触发，也可以自己把 gate 搭进项目：
 
 ```bash
-cd your-project
-npx skills add zhjai/agent-completion-gate -g -a claude-code   # 也可 -a codex、cursor…… 任何宿主
+# 告诉你的 agent：
+"set up the completion gate"
+# completion-gate-init skill 会帮你跑 scripts/init.sh --dest .
 ```
 
-然后**由你（人）**把 gate 搭进仓库——一条命令，不用手动拷文件：
+或者自己直接跑：
 
 ```bash
-# 引擎和脚手架在仓库里（skill 只教流程，不附带引擎）
 git clone https://github.com/zhjai/agent-completion-gate /tmp/acg
 cd your-project && sh /tmp/acg/scripts/init.sh --dest .
 ```
 
-它会创建 `gate/`（引擎 + 一份**空的、能过的** manifest）、`control/surface_inventory.yaml`、`state/`、`.github/workflows/completion-gate.yml`，以及一份 CODEOWNERS 示例。幂等;不加 `--force` 绝不覆盖你改过的 spec。*（更想跟 agent 说一句就搞定?让它「set up the completion gate」即可——`completion-gate-init` skill 跑的就是这个脚本。脚本才是权威。）*
+会创建 `gate/`（引擎 + 空的可通过 manifest）、`control/surface_inventory.yaml`、`state/`、`.github/workflows/completion-gate.yml`，以及一份 CODEOWNERS 示例。幂等，不加 `--force` 绝不覆盖你改过的 spec。
 
-> **刚装上时是故意「宽松」的。** 空 spec 是**放行**的——这时 gate 只拦住 agent 自己宣布 `complete`,它还**不知道**你项目的产物长啥样。要让它真有用,你得至少加一个 surface 和一条 check。
+> **刚装上时是故意「宽松」的。** 空 spec 是放行的——这时 gate 只拦住 agent 自己宣布 `complete`，它还不知道你项目的产物长啥样。要让它真有用，至少加一个 surface 和一条 check。
 
 **1 —— 定义「完成」是什么意思**（人把意图提炼成 check，gate 不会替你猜）。改 `control/surface_inventory.yaml`：
 
