@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.2
+
+- **Fix: `goal-compile` was being silently dropped at install** — its `description` was 1072 chars, over the Agent Skills 1024-char limit, so hosts skipped the skill ("Skipped loading 1 skill(s) … exceeds maximum length of 1024 characters"). Trimmed to 784 chars (kept the triggers, the small-task exclusions, and the no-self-certify rule; cut the verbose process prose). Audited all skills in the repo against the spec limits (name ≤64 + format, description ≤1024) — all pass.
+
 ## v0.4.1
 
 - **`goal-compile` now right-sizes — small tasks skip the gate.** Two fixes from real-use feedback (settled in agent-arena):

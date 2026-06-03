@@ -1,9 +1,9 @@
 ---
 name: goal-compile
-description: 'Use when the user asks the agent to carry out and keep track of a substantial goal, naturally phrased with or without a prefix: "设计goal: ...", "goal: ...", "我的目标是...", "help me finish/build/implement X", "帮我完成这个任务/目标", "做一个X", or "use the completion gate to do X". Trigger for long-running, multi-step, multi-file, or user-visible-artifact work such as a feature, page, report, export, workflow, schema, release, migration, experiment, or integration. Do NOT use for typo fixes, one-line tweaks, isolated single-function or mechanical single-file edits, one-off questions, simple lookups, or ordinary small tasks; handle those directly unless the user explicitly asks to use the gate. Compiles the goal into completion-gate acceptance criteria (surfaces + machine checks + review_items), auto-initializes the gate if absent, confirms the criteria with the user once before work (like confirming a plan), then drives the task to the gate verdict. The agent DRAFTS criteria and never self-certifies: a human confirms the criteria, and only the external gate grants complete.'
+description: 'Use when the user sets a substantial, multi-step or long-running goal/task — naturally phrased, no prefix needed: "设计goal: ...", "goal: ...", "我的目标是...", "帮我完成这个任务/目标", "help me build/implement X", "做一个X". For work that produces a user-visible artifact (feature, page, report, export, schema, release, migration, experiment) or spans multiple files/steps. Do NOT use for typo fixes, one-line or single-function tweaks, one-off questions, lookups, or small tasks — handle those directly unless the user explicitly asks for the gate. Compiles the goal into acceptance criteria, confirms them with the user once before work (like a plan), then runs the external gate. The agent only DRAFTS criteria and never self-certifies: a human confirms them; only the external gate grants complete.'
 license: MIT
 metadata:
-  version: "0.4.1"
+  version: "0.4.2"
   author: zhjai
   tags: "goal, completion, gate, acceptance, long-task, goal-first"
   related_skills: "completion-gate-init, completion-audit"
