@@ -1,9 +1,9 @@
 ---
 name: goal-compile
-description: 'Use when the user sets a substantial, multi-step or long-running goal/task — naturally phrased, no prefix needed: "设计goal: ...", "goal: ...", "我的目标是...", "帮我完成这个任务/目标", "help me build/implement X", "做一个X". For work that produces a user-visible artifact (feature, page, report, export, schema, release, migration, experiment) or spans multiple files/steps. Do NOT use for typo fixes, one-line or single-function tweaks, one-off questions, lookups, or small tasks — handle those directly unless the user explicitly asks for the gate. Compiles the goal into acceptance criteria, confirms them with the user once before work (like a plan), then runs the external gate. The agent only DRAFTS criteria and never self-certifies: a human confirms them; only the external gate grants complete.'
+description: 'Use when the user sets a substantial, multi-step or long-running goal/task — naturally phrased, no prefix needed: "设计goal: ...", "goal: ...", "我的目标是...", "帮我完成这个任务/目标", "help me build/implement X", "做一个X". For work that produces a user-visible artifact (feature, page, report, export, copy/文案, schema, release, migration, experiment) — short length does not exempt it — or spans multiple files/steps. Do NOT use for typo fixes, one-line tweaks, one-off questions, lookups, or trivial edits — handle those directly unless the user explicitly asks for the gate. STEP 1: read this SKILL.md (path given) in full first. HARD RULE — the user stating a goal is NOT approval of scope or done; you only DRAFT criteria. Before ANY draft, outline, sample, placeholder, artifact, file edit, or command, reply with the acceptance criteria in plain language and STOP for the user''s explicit OK. Do not preview or partially produce the deliverable before that OK. Only the external gate grants complete; never self-certify.'
 license: MIT
 metadata:
-  version: "0.4.2"
+  version: "0.4.3"
   author: zhjai
   tags: "goal, completion, gate, acceptance, long-task, goal-first"
   related_skills: "completion-gate-init, completion-audit"

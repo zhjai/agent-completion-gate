@@ -3,7 +3,7 @@ name: completion-gate-init
 description: Use when the user asks to set up / install / initialize the completion gate in their project (e.g. "set up the completion gate", "add the completion gate to this repo"). Runs the bundled deterministic scaffolder (scripts/init.sh) to create gate/, control/, state/, and a CI workflow, then tells the user what THEY must protect. Does NOT make the gate authoritative — branch protection + CODEOWNERS are the human's job and must not be done by the agent.
 license: MIT
 metadata:
-  version: "0.4.2"
+  version: "0.4.3"
   author: zhjai
   tags: "completion, gate, init, scaffold, setup, acceptance"
   related_skills: "goal-compile, completion-audit"

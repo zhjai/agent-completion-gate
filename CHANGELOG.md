@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.3
+
+- **Fix: on Codex, `goal-compile` skipped the mandatory confirmation and started working.** Root cause (verified from a real 910b session rollout): Codex loads only a skill's one-line `description` into context, **not** the `SKILL.md` body — unlike Claude Code, which loads the full body. The confirm-before-work guarantee lived almost entirely in the body (step 3), so on Codex the agent only saw a soft half-sentence ("confirms them once") and, being goal-driven, just executed. The skill was correctly installed and loaded — the failure was the host's description-only loading, not a missing install.
+- **Fix: the `description` now carries the hard rule itself**, so it binds even when the body is never loaded: "read this SKILL.md in full first", "the user stating a goal is NOT approval of scope or done", "Before ANY draft, outline, sample, placeholder, artifact, file edit, or command … STOP for the user's explicit OK", "Do not preview or partially produce the deliverable before that OK". Hardened across three heterogeneous (Codex) review rounds that reproduced and then closed five rationalization dodges (implicit-approval, criteria-are-obvious, preview/draft, completion-only reading, and the short-artifact "small task" exemption — `copy/文案` is now explicitly covered and "short length does not exempt it"). 1008/1024 chars, single-line, YAML-valid.
+
 ## v0.4.2
 
 - **Fix: `goal-compile` was being silently dropped at install** — its `description` was 1072 chars, over the Agent Skills 1024-char limit, so hosts skipped the skill ("Skipped loading 1 skill(s) … exceeds maximum length of 1024 characters"). Trimmed to 784 chars (kept the triggers, the small-task exclusions, and the no-self-certify rule; cut the verbose process prose). Audited all skills in the repo against the spec limits (name ≤64 + format, description ≤1024) — all pass.

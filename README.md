@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml"><img alt="CI" src="https://github.com/zhjai/agent-completion-gate/actions/workflows/test.yml/badge.svg"></a>
-  <img alt="version" src="https://img.shields.io/badge/version-0.4.2-informational">
+  <img alt="version" src="https://img.shields.io/badge/version-0.4.3-informational">
   <img alt="works with" src="https://img.shields.io/badge/Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20any%20agent-444">
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-yellow"></a>
 </p>
@@ -205,4 +205,4 @@ Hardened across multiple heterogeneous (Codex × Claude) review rounds — each 
 
 ## Status
 
-`v0.4.2` preview. MIT. Agent-agnostic, file-based, fail-closed. Optional companion: [`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook).
+`v0.4.3` preview. MIT. Agent-agnostic, file-based, fail-closed. Optional companion: [`agent-lessonbook`](https://github.com/zhjai/agent-lessonbook).
