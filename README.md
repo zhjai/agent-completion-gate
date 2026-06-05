@@ -98,6 +98,17 @@ The worker can only reach `candidate_complete` or `blocked`. **Only an external 
 - **memory** records belief, not verified truth.
 - Only a **gate the agent can't edit, on a path it can't skip, reading artifacts it can't fake** reliably stops "looks done but isn't."
 
+## Works with `/goal` — adds the external artifact check it lacks
+
+Claude Code now ships a built-in **`/goal`**, and Codex has a built-in goal mechanism too: you set a completion condition and the agent loops autonomously until the condition is judged met. It's a great autonomy loop — but the stop decision comes from an **internal, transcript-only evaluator** (Haiku by default in Claude Code), not from a tool-calling verifier. Claude Code's docs are explicit: the evaluator *"does not call tools, so it can only judge what Claude has already surfaced in the conversation."* It reads the **transcript**, not your real files.
+
+That's the gap this gate fills. `/goal` decides *when to keep going*; the gate decides *what counts as done* — by reading real artifacts. They compose, through the transcript:
+
+- **Make the completion condition require gate evidence.** The agent runs `gate/verify_completion.sh` during its turn and surfaces the result; then set the `/goal` condition to *"complete only once the transcript shows a successful gate run."* The loop keeps going until an external check on real output has actually passed and been shown — not until the narrative merely *sounds* done.
+- `goal-compile` (this kit's skill) is the front door: it turns your goal into acceptance criteria, gets your one confirmation, then runs the gate — so when the goal condition requires surfaced gate success, the loop terminates on transcript evidence of a real verification step, not on narrative self-assessment.
+
+Built-in goal loops give you the autonomous loop; the gate gives that loop an artifact-grounded check to stop on. Use both.
+
 ## When it triggers (and when it stays out of your way)
 
 `goal-compile` is tuned **conservative** — it only steps in for work that's worth a gate, and stays silent on small stuff:
